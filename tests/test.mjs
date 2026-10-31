@@ -43,6 +43,7 @@ await page.route('https://xkfjbrkrtetkbjugresq.supabase.co/**', async (route) =>
   if (tabell === 'v_tavling_turnering') return svara(F.tt);
   if (tabell === 'v_cup_poang') return svara(F.cup_poang);
   if (tabell === 'tavling_val' || tabell === 'poang_manuell') return svara([]);
+  if (tabell === 'uppgift') return svara(F.uppgift);
   if (tabell === 'v_turnering_statistik') {
     if (q.get('spelare_id')) return svara(F.stat.filter((s) => `eq.${s.spelare_id}` === q.get('spelare_id')));
     if (q.get('namn')) return svara(F.stat.filter((s) => `eq.${s.namn}` === q.get('namn')));
@@ -184,6 +185,14 @@ if (!skrivningar.some((s) => s.startsWith('POST tavling_val') && s.includes('t_A
 await page.selectOption('#bull-spelare', '90'); await page.click('#bull-lagg'); await page.waitForTimeout(300);
 if (!skrivningar.some((s) => s.startsWith('POST poang_manuell') && s.includes('"spelare_id":90'))) fel.push('cup: bull lades inte till');
 await kontroll('6d-admin-cup');
+await page.goto(B + '#/admin/gora'); await page.waitForSelector('.uppgift');
+if ((await page.locator('.uppgift').count()) !== 2) fel.push('att göra: uppgifter');
+if ((await page.locator('.kontroller li').count()) < 2) fel.push('att göra: automatiska kontroller');
+await page.click('[data-ansvar="administratör"]'); await page.waitForTimeout(200);
+if ((await page.locator('.uppgift').count()) !== 1) fel.push('att göra: filter på ansvar');
+await page.locator('.uppgift .klar-ruta').first().check(); await page.waitForTimeout(300);
+if (!skrivningar.some((s) => s.startsWith('PATCH uppgift?id=eq.2') && s.includes('klar'))) fel.push('att göra: bocka av');
+await kontroll('6e-att-gora');
 await page.goto(B + '#/admin/logg'); await page.waitForSelector('table');
 await page.goto(B + '#/admin/namn'); await page.waitForSelector('table');
 // 6. Skrivbord

@@ -182,6 +182,19 @@ a.resultat:hover { text-decoration: none; background: var(--rosa); color: #fff; 
 .formrad label { flex-wrap: wrap; max-width: 100%; }
 .regler label, .formrad label { display: flex; align-items: center; gap: .4rem; justify-content: space-between; }
 
+/* att göra */
+.kontroller { padding-left: 1.2rem; }
+.kontroller li { margin: .4rem 0; }
+.etikett { display: inline-block; font-size: .75rem; padding: .05rem .45rem; border-radius: 999px; background: var(--yta2); color: var(--dampad); border: 1px solid var(--linje); }
+.uppgifter { display: grid; gap: .6rem; grid-template-columns: minmax(0, 1fr); }
+.uppgift p { margin: .3rem 0; }
+.uppgift.klar { opacity: .55; }
+.uppgift .formrad input { flex: 1 1 10rem; min-width: 0; }
+.formrad input { min-width: 0; }
+.filter label.rad { display: inline-flex; align-items: center; gap: .35rem; margin-left: .3rem; }
+.uppgifter, .kontroller { overflow-wrap: anywhere; }
+.uppgift.klar b { text-decoration: line-through; }
+
 /* nyheter */
 .tabs a.info { width: 2rem; height: 2rem; padding: 0; display: inline-grid; place-items: center; border: 2px solid var(--dampad);
   border-radius: 50%; font-weight: 800; font-style: italic; font-family: Georgia, serif; }

@@ -1,6 +1,6 @@
 // Egna SVG-diagram utan bibliotek: punkter över tid + glidande snitt, tooltip vid hover/fokus/tryck.
 // Format enligt SI oberoende av webbläsarens språk.
-import { fmt } from './lib.js?v=0.4.0';
+import { fmt } from './lib.js?v=0.4.1';
 
 const B = 640, H = 300, M = { v: 62, h: 14, o: 18, n: 40 };   // vänster, höger, över, nedre marginal
 

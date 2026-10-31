@@ -1,7 +1,7 @@
 // Admin: hämtning, koppla namn (allmänt eller per turnering), spelarregister, slå ihop, ändringslogg
-import { api, skriv, rpc, funktion, esc, fmt, datumTid, arAdmin } from './lib.js?v=0.4.0';
+import { api, skriv, rpc, funktion, esc, fmt, datumTid, arAdmin } from './lib.js?v=0.4.1';
 
-const flikar = [['', 'Översikt'], ['namn', 'Koppla namn'], ['spelare', 'Spelarregister'], ['cuper', 'Cuper'], ['logg', 'Ändringslogg']];
+const flikar = [['', 'Översikt'], ['gora', 'Att göra'], ['namn', 'Koppla namn'], ['spelare', 'Spelarregister'], ['cuper', 'Cuper'], ['logg', 'Ändringslogg']];
 const meny = (aktiv) => `<div class="filter" role="navigation" aria-label="Admin">${flikar.map(([k, n]) =>
   `<a class="chip${k === aktiv ? ' vald' : ''}" href="#/admin${k ? `/${k}` : ''}">${n}</a>`).join('')}</div>`;
 const spNamn = (s) => (s ? (s.visningsnamn && s.visningsnamn !== s.namn ? `${s.namn} (${s.visningsnamn})` : s.namn) : '–');
@@ -17,21 +17,24 @@ export async function visaAdmin(app, del, arg) {
   if (del === 'spelare') return visaRegister(app);
   if (del === 'cuper' && arg) return visaCupAdmin(app, arg);
   if (del === 'cuper') return visaCupLista(app);
+  if (del === 'gora') return visaAttGora(app);
   if (del === 'logg') return visaLogg(app);
   return visaOversikt(app);
 }
 
 // ---------- översikt: hämtning ----------
 async function visaOversikt(app) {
-  const [logg, delt] = await Promise.all([
+  const [logg, delt, oppnaUppg] = await Promise.all([
     api('hamtning?select=*&order=id.desc&limit=10'),
     api('v_deltagare?select=spelare_id'),
+    api('uppgift?select=id&status=eq.öppen'),
   ]);
   const kopplade = delt.filter((d) => d.spelare_id).length;
   app.innerHTML = `
     <h1>Admin</h1>${meny('')}
     <div class="nyckeltal"><div class="kort"><span class="muted">Kopplade deltaganden</span><b>${Math.round((100 * kopplade) / (delt.length || 1))} %</b></div>
-      <div class="kort"><span class="muted">Okopplade</span><b><a href="#/admin/namn">${delt.length - kopplade}</a></b></div></div>
+      <div class="kort"><span class="muted">Okopplade</span><b><a href="#/admin/namn">${delt.length - kopplade}</a></b></div>
+      <div class="kort"><span class="muted">Att göra</span><b><a href="#/admin/gora">${oppnaUppg.length}</a></b></div></div>
     <div class="kort">
       <h2>Hämta från n01</h2>
       <p class="muted liten">Sker automatiskt torsdag och söndag kl. 23:00. Knappen hämtar nya och ändrade turneringar direkt (tar upp till två minuter).</p>
@@ -354,4 +357,86 @@ async function visaCupAdmin(app, idText) {
     await skriv('POST', 'poang_manuell', { tavling_id: id, spelare_id, kategori: 'bull', antal: Number(app.querySelector('#bull-antal').value) || 1 });
   }));
   app.querySelectorAll('.ta-bort-bull').forEach((b) => b.addEventListener('click', () => kor(() => skriv('DELETE', `poang_manuell?id=eq.${b.dataset.id}`))));
+}
+
+// ---------- att göra / kvalitetssäkra ----------
+const goraFilter = { ansvar: '', visaKlara: false };
+
+async function visaAttGora(app) {
+  const [uppg, delt, turn, iCup, cuper, spelare, alias, hamt] = await Promise.all([
+    api('uppgift?select=*&order=ordning,id'),
+    api('v_deltagare?select=namn,spelare_id'),
+    api('turnering?select=tdid,datum,serie,omgang,titel&order=datum.desc'),
+    api('v_tavling_turnering?select=tdid'),
+    api('tavling?select=id,namn,kommentar'),
+    api('spelare?select=id,namn,efternamn,medlemsnummer,aktiv'),
+    api('alias?select=spelare_id'),
+    api('hamtning?select=status,start,meddelande&order=id.desc&limit=1'),
+  ]);
+  // Automatiska kontroller – räknas varje gång sidan öppnas
+  const okopplade = {};
+  delt.filter((d) => !d.spelare_id).forEach((d) => { okopplade[d.namn] = (okopplade[d.namn] ?? 0) + 1; });
+  const okNamn = Object.entries(okopplade).sort((a, b) => b[1] - a[1]);
+  const medICup = new Set(iCup.map((t) => t.tdid));
+  const utanCup = turn.filter((t) => !medICup.has(t.tdid));
+  const kontrollera = cuper.filter((c) => /kontrollera/i.test(c.kommentar ?? ''));
+  const aktiva = spelare.filter((x) => x.aktiv);
+  const utanEfternamn = aktiva.filter((x) => !x.efternamn || x.efternamn.length <= 2);
+  const utanNr = aktiva.filter((x) => !x.medlemsnummer);
+  const harAlias = new Set(alias.map((a) => a.spelare_id));
+  const tomma = spelare.filter((x) => !x.aktiv && !harAlias.has(x.id));
+  const senaste = hamt[0];
+  const kontroller = [
+    [okNamn.length, 'administratör', `${okNamn.reduce((s, [, n]) => s + n, 0)} deltaganden med ${okNamn.length} namn är inte kopplade till en person`, okNamn.slice(0, 8).map(([n, a]) => `${n} (${a})`).join(', '), '#/admin/namn'],
+    [utanCup.length, 'tävlingsledare', `${utanCup.length} turneringar hör inte till någon cup`, utanCup.slice(0, 6).map((t) => `${t.datum} ${t.serie ?? t.titel}${t.omgang ? ` ${t.omgang}` : ''}`).join(', '), '#/admin/cuper'],
+    [kontrollera.length, 'tävlingsledare', `${kontrollera.length} cuper har regler som ska kontrolleras`, kontrollera.map((c) => c.namn).join(', '), '#/admin/cuper'],
+    [utanEfternamn.length, 'administratör', `${utanEfternamn.length} spelare saknar efternamn`, utanEfternamn.slice(0, 10).map((x) => x.namn).join(', '), '#/admin/spelare'],
+    [utanNr.length, 'administratör', `${utanNr.length} spelare saknar medlemsnummer`, '', '#/admin/spelare'],
+    [tomma.length, 'administratör', `${tomma.length} inaktiva spelare utan kopplingar kan tas bort`, tomma.map((x) => x.namn).join(', '), '#/admin/spelare'],
+    [senaste?.status === 'fel' ? 1 : 0, 'administratör', 'Senaste hämtningen från n01 misslyckades', senaste?.meddelande ?? '', '#/admin'],
+  ].filter(([n, ansvar]) => n > 0 && (!goraFilter.ansvar || goraFilter.ansvar === ansvar));
+
+  const lista = uppg.filter((u) => (!goraFilter.ansvar || u.ansvar === goraFilter.ansvar) && (goraFilter.visaKlara || u.status === 'öppen'));
+  const oppna = uppg.filter((u) => u.status === 'öppen');
+  const knapp = (v, n) => `<button type="button" class="chip${goraFilter.ansvar === v ? ' vald' : ''}" data-ansvar="${v}">${n}</button>`;
+  app.innerHTML = `
+    <h1>Att göra</h1>${meny('gora')}
+    <p class="muted">Kvalitetssäkring och uppgifter för tävlingsledaren och administratören. ${oppna.length} öppna uppgifter (tävlingsledare ${oppna.filter((u) => u.ansvar === 'tävlingsledare').length}, administratör ${oppna.filter((u) => u.ansvar === 'administratör').length}).</p>
+    <div class="filter">${knapp('', 'Alla')}${knapp('tävlingsledare', 'Tävlingsledare')}${knapp('administratör', 'Administratör')}
+      <label class="rad liten"><input type="checkbox" id="visa-klara"${goraFilter.visaKlara ? ' checked' : ''}> Visa klara</label></div>
+    <h2>Automatiska kontroller</h2>
+    <p class="muted liten">Räknas om varje gång sidan öppnas – försvinner när det är åtgärdat.</p>
+    ${kontroller.length ? `<ul class="kontroller">${kontroller.map(([, ansvar, text, detalj, lank]) =>
+      `<li><a href="${lank}"><b>${esc(text)}</b></a> <span class="etikett">${ansvar}</span>${detalj ? `<br><small class="muted">${esc(detalj)}</small>` : ''}</li>`).join('')}</ul>` : '<p class="muted">Inget att åtgärda.</p>'}
+    <h2>Uppgifter</h2>
+    <p class="svar" role="status"></p>
+    <div class="uppgifter">${lista.map((u) => `<div class="kort uppgift${u.status === 'klar' ? ' klar' : ''}" data-id="${u.id}">
+      <label class="rad"><input type="checkbox" class="klar-ruta"${u.status === 'klar' ? ' checked' : ''}> <b>${esc(u.titel)}</b></label>
+      <span class="etikett">${esc(u.ansvar)}</span>${u.kategori ? ` <span class="etikett">${esc(u.kategori)}</span>` : ''}
+      ${u.beskrivning ? `<p class="liten">${esc(u.beskrivning)}</p>` : ''}
+      ${u.lank ? `<p class="liten"><a href="${esc(u.lank)}">Gå dit →</a></p>` : ''}
+      <div class="formrad"><input class="kommentar" value="${esc(u.kommentar ?? '')}" placeholder="Kommentar" size="40"><button class="btn liten sekundar spara-kommentar" type="button">Spara</button>
+        ${u.klar_tid ? `<small class="muted">klar ${datumTid(u.klar_tid)}</small>` : ''}</div>
+    </div>`).join('') || '<p class="muted">Inga uppgifter.</p>'}</div>
+    <details class="kort"><summary>Ny uppgift</summary>
+      <div class="formrad"><input id="ny-titel" placeholder="Vad ska göras?" size="40">
+        <select id="ny-ansvar"><option>tävlingsledare</option><option>administratör</option></select></div>
+      <div class="formrad"><input id="ny-beskrivning" placeholder="Beskrivning (valfritt)" size="50"></div>
+      <button class="btn liten" id="ny-skapa" type="button">Lägg till</button></details>`;
+
+  const kor = async (f, text = 'Sparat.') => { try { await f(); await visaAttGora(app); app.querySelector('.svar').textContent = text; } catch (e) { app.querySelector('.svar').textContent = `Fel: ${e.message}`; } };
+  app.querySelectorAll('[data-ansvar]').forEach((b) => b.addEventListener('click', () => { goraFilter.ansvar = b.dataset.ansvar; visaAttGora(app); }));
+  app.querySelector('#visa-klara').addEventListener('change', (e) => { goraFilter.visaKlara = e.target.checked; visaAttGora(app); });
+  app.querySelectorAll('.klar-ruta').forEach((r) => r.addEventListener('change', () => {
+    const id = r.closest('.uppgift').dataset.id;
+    kor(() => skriv('PATCH', `uppgift?id=eq.${id}`, r.checked ? { status: 'klar', klar_tid: new Date().toISOString() } : { status: 'öppen', klar_tid: null }), r.checked ? 'Markerad som klar.' : 'Öppen igen.');
+  }));
+  app.querySelectorAll('.spara-kommentar').forEach((b) => b.addEventListener('click', () => {
+    const k = b.closest('.uppgift');
+    kor(() => skriv('PATCH', `uppgift?id=eq.${k.dataset.id}`, { kommentar: k.querySelector('.kommentar').value.trim() || null }));
+  }));
+  app.querySelector('#ny-skapa').addEventListener('click', () => kor(async () => {
+    const titel = app.querySelector('#ny-titel').value.trim(); if (!titel) throw new Error('Skriv vad som ska göras');
+    await skriv('POST', 'uppgift', { titel, ansvar: app.querySelector('#ny-ansvar').value, beskrivning: app.querySelector('#ny-beskrivning').value.trim() || null });
+  }, 'Uppgiften är tillagd.'));
 }
