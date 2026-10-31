@@ -1,6 +1,6 @@
 // Distriktsserien (v0.5): serietabeller för hela divisionerna, lagmatcher och Bankeryds spelare.
 // Delmatcher (singlar/dubblar) med legs finns bara för Bankeryds lag (beslut Henrik 2026-10-31).
-import { api, esc, fmt, spelarlank } from './lib.js?v=0.5.1';
+import { api, esc, fmt, spelarlank } from './lib.js?v=0.5.2';
 
 const lagNamn = (namn, bankeryd) => (bankeryd ? `<b class="bankeryd">${esc(namn)}</b>` : esc(namn));
 const resultat = (a, b) => (a == null || b == null ? '–' : `${a}–${b}`);
@@ -149,10 +149,12 @@ export async function visaDsMatch(app, mid) {
     const k = kast.filter((x) => x.leg_nr === l.nr);
     const sida = (s) => k.filter((x) => x.sida === s);
     const pilar = (s) => sida(s).reduce((sum, x) => sum + x.pilar, 0);
-    const runda = (x) => `<span class="runda${x.utgang ? ' ut' : ''}${x.poang >= 100 ? ' hog' : ''}" title="Kvar ${x.kvar}">${x.poang}</span>`;
+    const runda = (x) => `<span class="runda${x.utgang ? ' ut' : ''}${x.poang >= 100 ? ' hog' : ''}" title="Kastade ${x.poang}, kvar ${x.kvar}"><b>${x.poang}</b><small>${x.kvar}</small></span>`;
+    // Startpoängen före första rundan (kan skilja mellan sidorna vid handikapp)
+    const start = (r) => (r.length ? `<span class="runda start" title="Startpoäng"><b>&nbsp;</b><small>${r[0].kvar + r[0].poang}</small></span>` : '');
     return `<div class="kort leg">
       <h3>Leg ${l.nr + 1} <span class="muted liten">· ${esc(sidaNamn(l.forst === 1 ? 1 : 0))} började${l.vinnare != null ? ` · vinst ${esc(sidaNamn(l.vinnare))}` : ''}${l.mfd ? ' · avgjort med närmast bull' : ''}</span></h3>
-      ${[0, 1].map((s) => `<div class="legsida"><span class="muted">${esc(sidaNamn(s))}</span><span class="rundor">${sida(s).map(runda).join('')}</span><small class="muted">${pilar(s)} pilar</small></div>`).join('')}
+      ${[0, 1].map((s) => `<div class="legsida"><span class="muted">${esc(sidaNamn(s))}</span><span class="rundor">${start(sida(s))}${sida(s).map(runda).join('')}</span><small class="muted">${pilar(s)} pilar</small></div>`).join('')}
     </div>`;
   }).join('');
   app.innerHTML = `
@@ -169,6 +171,6 @@ export async function visaDsMatch(app, mid) {
       <tbody>${rader.map(([n, f]) => `<tr><td>${f(a)}</td><td class="muted">${n}</td><td>${f(b)}</td></tr>`).join('')}</tbody>
     </table></div>
     <h2>Legs</h2>
-    <p class="muted liten">Varje runda = tre pilar${d.dubbel ? ' – i dubbel kastar spelarna varannan runda' : ''}. Rosa = 100 eller mer, mint = utgång.</p>
+    <p class="muted liten">Varje runda = tre pilar: kastade poäng överst, kvar under. Första rutan är startpoängen${d.dubbel ? ' – i dubbel kastar spelarna varannan runda' : ''}. Rosa = 100 eller mer, mint = utgång.</p>
     ${legHtml}`;
 }

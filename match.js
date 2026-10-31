@@ -1,5 +1,5 @@
 // Matchsida: resultat, statistik per spelare och varje leg runda för runda
-import { api, esc, fmt, spelarlank } from './lib.js?v=0.5.1';
+import { api, esc, fmt, spelarlank } from './lib.js?v=0.5.2';
 
 export async function visaMatch(app, mid) {
   const q = encodeURIComponent(mid);
@@ -26,11 +26,13 @@ export async function visaMatch(app, mid) {
     const sida = (s) => k.filter((x) => x.sida === s);
     const pilar = (s) => sida(s).reduce((sum, x) => sum + x.pilar, 0);
     const vinnare = l.vinnare === 0 ? a : l.vinnare === 1 ? b : null;
-    const runda = (x) => `<span class="runda${x.utgang ? ' ut' : ''}${x.poang >= 100 ? ' hog' : ''}" title="Kvar ${x.kvar}">${x.poang}</span>`;
+    const runda = (x) => `<span class="runda${x.utgang ? ' ut' : ''}${x.poang >= 100 ? ' hog' : ''}" title="Kastade ${x.poang}, kvar ${x.kvar}"><b>${x.poang}</b><small>${x.kvar}</small></span>`;
+    // Startpoängen före första rundan (kan skilja mellan sidorna vid handikapp)
+    const start = (r) => (r.length ? `<span class="runda start" title="Startpoäng"><b>&nbsp;</b><small>${r[0].kvar + r[0].poang}</small></span>` : '');
     return `<div class="kort leg">
       <h3>Leg ${l.nr + 1} <span class="muted liten">· ${esc((l.forst === 1 ? b : a)?.namn ?? '')} började${vinnare ? ` · vinst ${esc(vinnare.namn)}` : ''}${l.mfd ? ' · avgjort med närmast bull' : ''}</span></h3>
-      <div class="legsida"><span class="muted">${esc(a.namn)}</span><span class="rundor">${sida(0).map(runda).join('')}</span><small class="muted">${pilar(0)} pilar</small></div>
-      ${b ? `<div class="legsida"><span class="muted">${esc(b.namn)}</span><span class="rundor">${sida(1).map(runda).join('')}</span><small class="muted">${pilar(1)} pilar</small></div>` : ''}
+      <div class="legsida"><span class="muted">${esc(a.namn)}</span><span class="rundor">${start(sida(0))}${sida(0).map(runda).join('')}</span><small class="muted">${pilar(0)} pilar</small></div>
+      ${b ? `<div class="legsida"><span class="muted">${esc(b.namn)}</span><span class="rundor">${start(sida(1))}${sida(1).map(runda).join('')}</span><small class="muted">${pilar(1)} pilar</small></div>` : ''}
     </div>`;
   }).join('');
 
@@ -48,6 +50,6 @@ export async function visaMatch(app, mid) {
       <tbody>${rader.map(([n, f]) => `<tr><td>${f(a)}</td><td class="muted">${n}</td><td>${b ? f(b) : ''}</td></tr>`).join('')}</tbody>
     </table></div>
     <h2>Legs</h2>
-    <p class="muted liten">Varje runda = tre pilar. Rosa = 100 eller mer, mint = utgång.</p>
+    <p class="muted liten">Varje runda = tre pilar: kastade poäng överst, kvar under. Första rutan är startpoängen. Rosa = 100 eller mer, mint = utgång.</p>
     ${legHtml}`;
 }

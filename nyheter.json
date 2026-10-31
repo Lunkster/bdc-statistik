@@ -2,6 +2,7 @@
  {
   "datum": "2026-10-31",
   "punkter": [
+   "I varje leg syns nu ställningen: under de kastade poängen står vad som är kvar, och första rutan visar startpoängen – både i klubbens matcher och i distriktsserien (v0.5.2)",
    "Spelarsidan listar alla dina matcher med resultat, motståndare och snitt – tryck på resultatet för att se varje leg runda för runda. På turneringssidan går nu även gruppspelets matcher att öppna, under Matcherna i gruppen (v0.5.1)",
    "Ny flik Serien: distriktsserien med serietabellen för varje division, alla lagmatcher och statistik för Bankeryds spelare i A- och B-laget. Tryck på en av Bankeryds lagmatcher för att se alla singlar och dubblar, och vidare på en match för varje leg runda för runda. Spelarsidan visar också spelarens siffror i distriktsserien (v0.5.0)",
    "Ny flik Cuper: klubbens cuper och serier med poängtabeller enligt klubbens poängregler – räknas automatiskt efter varje omgång, med markering för vilka som kvalat till finalspelet. Höstserien, sommarens cuper och vårens BDC Cup och Bad Magic Cup finns med (v0.4.0)",

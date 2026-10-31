@@ -164,6 +164,11 @@ a.resultat:hover { text-decoration: none; background: var(--rosa); color: #fff; 
 .legsida { display: grid; grid-template-columns: 5.5rem 1fr auto; gap: .5rem; align-items: center; padding: .2rem 0; }
 .rundor { display: flex; flex-wrap: wrap; gap: .25rem; }
 .runda { min-width: 2.1rem; text-align: center; background: var(--yta2); border-radius: 5px; padding: .05rem .3rem; font-size: .88rem; }
+.runda { display: inline-flex; flex-direction: column; line-height: 1.15; padding: .1rem .3rem; }
+.runda b { font-weight: 700; }
+.runda small { font-size: .72rem; opacity: .75; border-top: 1px solid rgba(255,255,255,.15); }
+.runda.ut small { border-top-color: rgba(0,0,0,.2); }
+.runda.start { background: transparent; border: 1px dashed var(--linje); color: var(--dampad); }
 .runda.hog { background: var(--rosa); color: #fff; }
 .runda.ut { background: var(--mint); color: var(--bg); font-weight: 800; }
 

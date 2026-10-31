@@ -1,6 +1,6 @@
 // Spelarsida (kopplad person eller okopplat n01-namn) med grafer och rekord, samt spelarlista
-import { api, esc, fmt, heltal, spelarlank } from './lib.js?v=0.5.1';
-import { tidsdiagram } from './diagram.js?v=0.5.1';
+import { api, esc, fmt, heltal, spelarlank } from './lib.js?v=0.5.2';
+import { tidsdiagram } from './diagram.js?v=0.5.2';
 
 let vyLage = 'turnering';   // 'turnering' | 'match' – minns mellan spelare
 

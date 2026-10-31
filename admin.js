@@ -1,5 +1,5 @@
 // Admin: hämtning, koppla namn (allmänt eller per turnering), spelarregister, slå ihop, ändringslogg
-import { api, skriv, rpc, funktion, esc, fmt, datumTid, arAdmin } from './lib.js?v=0.5.1';
+import { api, skriv, rpc, funktion, esc, fmt, datumTid, arAdmin } from './lib.js?v=0.5.2';
 
 const flikar = [['', 'Översikt'], ['gora', 'Att göra'], ['namn', 'Koppla namn'], ['spelare', 'Spelarregister'], ['cuper', 'Cuper'], ['serien', 'Serien'], ['logg', 'Ändringslogg']];
 const meny = (aktiv) => `<div class="filter" role="navigation" aria-label="Admin">${flikar.map(([k, n]) =>
