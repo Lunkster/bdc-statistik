@@ -1,7 +1,7 @@
 // Admin: hämtning, koppla namn (allmänt eller per turnering), spelarregister, slå ihop, ändringslogg
-import { api, skriv, rpc, funktion, esc, fmt, datumTid, arAdmin } from './lib.js?v=0.3.1';
+import { api, skriv, rpc, funktion, esc, fmt, datumTid, arAdmin } from './lib.js?v=0.4.0';
 
-const flikar = [['', 'Översikt'], ['namn', 'Koppla namn'], ['spelare', 'Spelarregister'], ['logg', 'Ändringslogg']];
+const flikar = [['', 'Översikt'], ['namn', 'Koppla namn'], ['spelare', 'Spelarregister'], ['cuper', 'Cuper'], ['logg', 'Ändringslogg']];
 const meny = (aktiv) => `<div class="filter" role="navigation" aria-label="Admin">${flikar.map(([k, n]) =>
   `<a class="chip${k === aktiv ? ' vald' : ''}" href="#/admin${k ? `/${k}` : ''}">${n}</a>`).join('')}</div>`;
 const spNamn = (s) => (s ? (s.visningsnamn && s.visningsnamn !== s.namn ? `${s.namn} (${s.visningsnamn})` : s.namn) : '–');
@@ -15,6 +15,8 @@ export async function visaAdmin(app, del, arg) {
   if (del === 'namn' && arg) return visaNamnKoppling(app, arg);
   if (del === 'namn') return visaNamnlista(app);
   if (del === 'spelare') return visaRegister(app);
+  if (del === 'cuper' && arg) return visaCupAdmin(app, arg);
+  if (del === 'cuper') return visaCupLista(app);
   if (del === 'logg') return visaLogg(app);
   return visaOversikt(app);
 }
@@ -238,4 +240,118 @@ async function visaLogg(app) {
       <tbody>${logg.map((l) => `<tr><td class="fast">${datumTid(l.tid)}</td><td>${esc(l.handling)}</td><td>${esc(l.n01_namn ?? '')}</td>
         <td>${l.tdid ? `<a href="#/turnering/${encodeURIComponent(l.tdid)}">en turnering</a>` : 'alla'}</td><td>${namn(l.fran_spelare)}</td><td>${namn(l.till_spelare)}</td></tr>`).join('')}</tbody>
     </table></div>`;
+}
+
+// ---------- cuper ----------
+const REGLER = [
+  ['deltagande', 'Deltagande'], ['finalvinst', 'Finalvinst'], ['finalforlust', 'Finalförlust'], ['semifinal', 'Semifinalplats'],
+  ['vunnen_match', 'Vunnen match'], ['hog_utgang', 'Hög utgång'], ['hog_utgang_fran', 'Hög utgång från (poäng)'],
+  ['t180', '180-kast'], ['t171', '171-kast'], ['kortset', 'Kortset'], ['kortset_pilar', 'Kortset högst (pilar)'], ['bull', 'Bull-utgång'],
+];
+const STD = { deltagande: 5, finalvinst: 5, finalforlust: 3, semifinal: 2, vunnen_match: 1, hog_utgang: 1, hog_utgang_fran: 100, t180: 1, t171: 0, kortset: 0, kortset_pilar: 21, bull: 1 };
+
+async function visaCupLista(app) {
+  const cuper = await api('tavling?select=id,namn,serie,fran,till,aktiv&order=fran.desc.nullslast');
+  app.innerHTML = `
+    <h1>Cuper</h1>${meny('cuper')}
+    <p class="muted">En cup samlar turneringar med samma serie inom ett datumintervall – nya omgångar kommer med automatiskt. Under varje cup: poängregler, final, uteslutna omgångar och bull-utgångar.</p>
+    <p><a class="btn" href="#/admin/cuper/ny">Ny cup</a></p>
+    <div class="rulla"><table class="tabell">
+      <thead><tr><th class="fast">Cup</th><th>Serie</th><th>Period</th><th>Aktiv</th></tr></thead>
+      <tbody>${cuper.map((c) => `<tr><td class="fast"><a href="#/admin/cuper/${c.id}">${esc(c.namn)}</a></td><td>${esc(c.serie ?? '')}</td>
+        <td>${esc(c.fran ?? '…')} – ${esc(c.till ?? '…')}</td><td>${c.aktiv ? 'ja' : 'nej'}</td></tr>`).join('')}</tbody></table></div>`;
+}
+
+async function visaCupAdmin(app, idText) {
+  const ny = idText === 'ny';
+  const id = ny ? null : Number(idText);
+  const [cupRad, turneringar, tt, valRader, spelare, manuell] = await Promise.all([
+    ny ? [] : api(`tavling?id=eq.${id}&select=*`),
+    api('turnering?select=tdid,titel,datum,serie,omgang&order=datum.desc'),
+    ny ? [] : api(`v_tavling_turnering?tavling_id=eq.${id}&select=tdid,roll,datum`),
+    ny ? [] : api(`tavling_val?tavling_id=eq.${id}&select=tdid,roll`),
+    api('spelare?select=id,namn,visningsnamn&aktiv=eq.true'),
+    ny ? [] : api(`poang_manuell?tavling_id=eq.${id}&select=*`),
+  ]);
+  const c = cupRad[0] ?? { namn: '', serie: '', fran: '', till: '', kvalgrans: 25, regler: STD, aktiv: true, kommentar: '' };
+  if (!ny && !cupRad.length) { app.innerHTML = '<p class="fel">Cupen finns inte.</p>'; return; }
+  spelare.sort(sortSp);
+  const sp = Object.fromEntries(spelare.map((s) => [s.id, s]));
+  const serier = [...new Set(turneringar.map((t) => t.serie).filter(Boolean))].sort((a, b) => a.localeCompare(b, 'sv'));
+  const r = { ...STD, ...(c.regler ?? {}) };
+  const iCup = new Map(tt.map((t) => [t.tdid, t.roll]));
+  const valPa = new Map(valRader.map((v) => [v.tdid, v.roll]));
+  // Turneringar att visa: de som är med + uteslutna + övriga med samma serie
+  const visas = turneringar.filter((t) => iCup.has(t.tdid) || valPa.has(t.tdid) || (c.serie && t.serie === c.serie));
+  const rollAv = (tdid) => valPa.get(tdid) === 'utesluten' ? 'utesluten' : iCup.get(tdid) ?? 'ingen';
+
+  app.innerHTML = `
+    <p><a href="#/admin/cuper" class="tillbaka">← Cuper</a>${ny ? '' : ` · <a href="#/cup/${id}">Visa poängtabellen</a>`}</p>
+    <h1>${ny ? 'Ny cup' : esc(c.namn)}</h1>${meny('cuper')}
+    <div class="kort">
+      <h2>Cupen</h2>
+      <div class="formrad"><label>Namn <input id="c-namn" value="${esc(c.namn)}" size="30"></label></div>
+      <div class="formrad"><label>Serie <select id="c-serie"><option value="">–</option>${serier.map((s) => `<option${s === c.serie ? ' selected' : ''}>${esc(s)}</option>`).join('')}</select></label>
+        <label>Från <input id="c-fran" value="${esc(c.fran ?? '')}" placeholder="ÅÅÅÅ-MM-DD" size="11"></label>
+        <label>Till <input id="c-till" value="${esc(c.till ?? '')}" placeholder="ÅÅÅÅ-MM-DD" size="11"></label>
+        <label>Kvalgräns <input id="c-kval" value="${c.kvalgrans ?? ''}" size="4" inputmode="numeric"></label>
+        <label class="rad"><input type="checkbox" id="c-aktiv"${c.aktiv ? ' checked' : ''}> Aktiv</label></div>
+      <h3>Poängregler</h3>
+      <div class="regler">${REGLER.map(([k, n]) => `<label>${n} <input data-regel="${k}" value="${r[k] ?? 0}" size="4" inputmode="numeric"></label>`).join('')}</div>
+      <p class="muted liten">0 = räknas inte. Kortset = vunnet leg på högst så många pilar. Hög utgång = utgång på minst så många poäng.</p>
+      <div class="formrad"><label>Kommentar <input id="c-kommentar" value="${esc(c.kommentar ?? '')}" size="50"></label></div>
+      <button class="btn" id="c-spara" type="button">${ny ? 'Skapa cupen' : 'Spara'}</button>
+      <p class="svar" role="status"></p>
+    </div>
+    ${ny ? '' : `
+    <h2>Turneringar</h2>
+    <p class="muted liten">Med automatiskt: serien <b>${esc(c.serie ?? '–')}</b> mellan ${esc(c.fran ?? '…')} och ${esc(c.till ?? '…')}. Ändra rollen för att markera finalspel, utesluta en omgång eller ta med en turnering som inte följer regeln.</p>
+    <div class="formrad"><select id="lagg-till">${turneringar.filter((t) => !iCup.has(t.tdid)).map((t) => `<option value="${esc(t.tdid)}">${esc(t.datum ?? '')} ${esc(t.serie ?? t.titel)}${t.omgang ? ` ${t.omgang}` : ''}</option>`).join('')}</select>
+      <select id="lagg-roll"><option value="final">som finalspel</option><option value="omgang">som omgång</option></select>
+      <button class="btn liten" id="lagg" type="button">Lägg till</button></div>
+    <div class="rulla"><table class="tabell">
+      <thead><tr><th class="fast">Datum</th><th>Turnering</th><th>Roll</th></tr></thead>
+      <tbody>${visas.map((t) => `<tr data-tdid="${esc(t.tdid)}"><td class="fast">${esc(t.datum ?? '')}</td>
+        <td><a href="#/turnering/${encodeURIComponent(t.tdid)}">${esc(t.serie ?? t.titel)}${t.omgang ? ` ${t.omgang}` : ''}</a></td>
+        <td><select class="roll">${[['omgang', 'Omgång'], ['final', 'Finalspel'], ['utesluten', 'Utesluten'], ['ingen', '– inte med –']].map(([v, n]) =>
+          `<option value="${v}"${rollAv(t.tdid) === v ? ' selected' : ''}>${n}</option>`).join('')}</select></td></tr>`).join('')}</tbody></table></div>
+    <h2>Bull-utgångar</h2>
+    <p class="muted liten">Går inte att läsa ur n01 – fyll i antal per spelare.</p>
+    <ul class="kandidater">${manuell.map((m) => `<li>${esc(m.spelare_id ? sp[m.spelare_id]?.namn ?? m.spelare_id : m.n01_namn)}: ${m.antal} ${m.kommentar ? `<small class="muted">${esc(m.kommentar)}</small>` : ''}
+      <button class="btn liten sekundar ta-bort-bull" data-id="${m.id}" type="button">Ta bort</button></li>`).join('') || '<li class="muted">Inga.</li>'}</ul>
+    <div class="formrad"><select id="bull-spelare">${val(spelare, null)}</select><input id="bull-antal" value="1" size="3" inputmode="numeric">
+      <button class="btn liten" id="bull-lagg" type="button">Lägg till</button></div>`}`;
+
+  const svar = app.querySelector('.svar');
+  const om = (nyttId) => (nyttId ? (location.hash = `#/admin/cuper/${nyttId}`) : visaCupAdmin(app, idText));
+  const kor = async (f, text = 'Sparat.') => { try { const nyttId = await f(); await om(nyttId); app.querySelector('.svar').textContent = text; } catch (e) { (app.querySelector('.svar') ?? svar).textContent = `Fel: ${e.message}`; } };
+  const datum = (v) => { v = v.trim(); if (v && !/^\d{4}-\d{2}-\d{2}$/.test(v)) throw new Error('Datum skrivs ÅÅÅÅ-MM-DD'); return v || null; };
+  app.querySelector('#c-spara').addEventListener('click', () => kor(async () => {
+    const regler = {};
+    app.querySelectorAll('[data-regel]').forEach((i) => { regler[i.dataset.regel] = Number(i.value.replace(',', '.')) || 0; });
+    const rad = { namn: app.querySelector('#c-namn').value.trim(), serie: app.querySelector('#c-serie').value || null,
+      fran: datum(app.querySelector('#c-fran').value), till: datum(app.querySelector('#c-till').value),
+      kvalgrans: Number(app.querySelector('#c-kval').value) || null, aktiv: app.querySelector('#c-aktiv').checked,
+      kommentar: app.querySelector('#c-kommentar').value.trim() || null, regler };
+    if (!rad.namn) throw new Error('Skriv ett namn');
+    if (ny) { const [x] = await skriv('POST', 'tavling', rad); return x.id; }
+    await skriv('PATCH', `tavling?id=eq.${id}`, rad);
+    return null;
+  }));
+  if (ny) return;
+  const sattRoll = async (tdid, roll) => {
+    const har = valPa.get(tdid);
+    const regelMatch = c.serie && turneringar.some((t) => t.tdid === tdid && t.serie === c.serie && (!c.fran || t.datum >= c.fran) && (!c.till || t.datum <= c.till));
+    const behovs = roll === 'ingen' ? (regelMatch ? 'utesluten' : null) : roll === 'omgang' && regelMatch ? null : roll;
+    if (!behovs && har) await skriv('DELETE', `tavling_val?tavling_id=eq.${id}&tdid=eq.${encodeURIComponent(tdid)}`);
+    else if (behovs && har) await skriv('PATCH', `tavling_val?tavling_id=eq.${id}&tdid=eq.${encodeURIComponent(tdid)}`, { roll: behovs });
+    else if (behovs) await skriv('POST', 'tavling_val', { tavling_id: id, tdid, roll: behovs });
+  };
+  app.querySelectorAll('.roll').forEach((s) => s.addEventListener('change', () => kor(() => sattRoll(s.closest('tr').dataset.tdid, s.value))));
+  app.querySelector('#lagg').addEventListener('click', () => kor(() => sattRoll(app.querySelector('#lagg-till').value, app.querySelector('#lagg-roll').value)));
+  app.querySelector('#bull-lagg').addEventListener('click', () => kor(async () => {
+    const spelare_id = Number(app.querySelector('#bull-spelare').value); if (!spelare_id) throw new Error('Välj en spelare');
+    await skriv('POST', 'poang_manuell', { tavling_id: id, spelare_id, kategori: 'bull', antal: Number(app.querySelector('#bull-antal').value) || 1 });
+  }));
+  app.querySelectorAll('.ta-bort-bull').forEach((b) => b.addEventListener('click', () => kor(() => skriv('DELETE', `poang_manuell?id=eq.${b.dataset.id}`))));
 }

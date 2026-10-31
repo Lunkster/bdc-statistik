@@ -35,8 +35,14 @@ await page.route('https://xkfjbrkrtetkbjugresq.supabase.co/**', async (route) =>
   if (u.pathname.startsWith('/functions/v1/hamta')) return svara({ ok: true, klart: true, kvar: 0, turneringar: 1, matcher: 30 });
   const tabell = u.pathname.split('/').pop();
   const q = u.searchParams;
+  if (route.request().method() !== 'GET') { skrivningar.push(`${route.request().method()} ${tabell}${u.search} ${route.request().postData() ?? ''}`);
+    return svara(tabell === 'spelare' ? [{ id: 99 }] : []); }
   if (tabell === 'v_turnering') return svara(q.get('tdid') ? F.turn : F.lista);
-  if (tabell === 'turnering') return svara(F.rad);
+  if (tabell === 'turnering') return svara((q.get('select') ?? '').includes('titel') ? F.turnlista : F.rad);
+  if (tabell === 'tavling') return svara(F.tavling);
+  if (tabell === 'v_tavling_turnering') return svara(F.tt);
+  if (tabell === 'v_cup_poang') return svara(F.cup_poang);
+  if (tabell === 'tavling_val' || tabell === 'poang_manuell') return svara([]);
   if (tabell === 'v_turnering_statistik') {
     if (q.get('spelare_id')) return svara(F.stat.filter((s) => `eq.${s.spelare_id}` === q.get('spelare_id')));
     if (q.get('namn')) return svara(F.stat.filter((s) => `eq.${s.namn}` === q.get('namn')));
@@ -49,8 +55,6 @@ await page.route('https://xkfjbrkrtetkbjugresq.supabase.co/**', async (route) =>
     if (q.get('spelare_id') === 'eq.47') return svara(F.spelare_match);
     return svara([]);
   }
-  if (route.request().method() !== 'GET') { skrivningar.push(`${route.request().method()} ${tabell}${u.search} ${route.request().postData() ?? ''}`);
-    return svara(tabell === 'spelare' ? [{ id: 99 }] : []); }
   if (tabell === 'v_namn_underlag') return svara(F.underlag);
   if (tabell === 'alias_logg') return svara(F.alias_logg);
   if (tabell === 'leg') return svara(F.leg);
@@ -142,6 +146,17 @@ if (namnLista.join() !== [...namnLista].sort((a, b) => a.localeCompare(b, 'sv'))
 await kontroll('5b-spelarlista');
 await page.click('a.info'); await page.waitForSelector('.nyhet');
 if ((await page.locator('.nyhet li').count()) !== 2) fel.push('nyheter');
+// 4c. Cuper
+await page.click('a[data-route="cuper"]'); await page.waitForSelector('.cupkort');
+await page.click('.cupkort'); await page.waitForSelector('.poangtabell');
+const forstaCup = await page.locator('.poangtabell tbody tr >> nth=0 >> td >> nth=1').innerText();
+if (forstaCup !== 'Ada') fel.push('cup: ledare ' + forstaCup);
+if ((await page.locator('.poangtabell tr.kval').count()) !== 2) fel.push('cup: kvalificerade');
+const rubriker = await page.locator('.poangtabell th').allInnerTexts();
+if (!rubriker.some((r) => r.includes('KS')) || !rubriker.some((r) => r.includes('171'))) fel.push('cup: kolumner ' + rubriker);
+await page.click('.poangtabell [data-sort="visas"]');
+if ((await page.locator('.poangtabell tbody tr >> nth=0 >> td >> nth=1').innerText()) !== 'Ada') fel.push('cup: sortering på namn');
+await kontroll('4c-cup');
 // 5b. Admin: koppla namn, register, logg
 await page.goto(B + '#/admin/namn/Ada'); await page.waitForSelector('#allman');
 await page.selectOption('#allman', '90'); await page.click('#spara-allman');
@@ -159,6 +174,16 @@ page.once('dialog', (d) => d.accept());
 await page.locator('tr[data-id="91"] .ihop').selectOption('90'); await page.click('tr[data-id="91"] .sla-ihop'); await page.waitForTimeout(300);
 if (!skrivningar.some((s) => s.startsWith('POST sla_ihop_spelare') && s.includes('"fran":91') && s.includes('"till":90'))) fel.push('slå ihop anropades inte');
 await kontroll('6c-register');
+await page.goto(B + '#/admin/cuper/1'); await page.waitForSelector('#c-spara');
+await page.fill('[data-regel="kortset_pilar"]', '20'); await page.click('#c-spara'); await page.waitForTimeout(300);
+if (!skrivningar.some((s) => s.startsWith('PATCH tavling?id=eq.1') && s.includes('"kortset_pilar":20'))) fel.push('cup: regler sparades inte ' + skrivningar.slice(-3).join(' | ') + ' svar: ' + await page.locator('.svar').innerText());
+await page.locator('tr[data-tdid="t_Hx2V_6884"] .roll').selectOption('utesluten'); await page.waitForTimeout(300);
+if (!skrivningar.some((s) => s.startsWith('POST tavling_val') && s.includes('utesluten'))) fel.push('cup: uteslutning skrevs inte');
+await page.selectOption('#lagg-till', 't_AkVq_9412'); await page.click('#lagg'); await page.waitForTimeout(300);
+if (!skrivningar.some((s) => s.startsWith('POST tavling_val') && s.includes('t_AkVq_9412') && s.includes('final'))) fel.push('cup: final lades inte till');
+await page.selectOption('#bull-spelare', '90'); await page.click('#bull-lagg'); await page.waitForTimeout(300);
+if (!skrivningar.some((s) => s.startsWith('POST poang_manuell') && s.includes('"spelare_id":90'))) fel.push('cup: bull lades inte till');
+await kontroll('6d-admin-cup');
 await page.goto(B + '#/admin/logg'); await page.waitForSelector('table');
 await page.goto(B + '#/admin/namn'); await page.waitForSelector('table');
 // 6. Skrivbord
