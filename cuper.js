@@ -1,5 +1,5 @@
 // Cuper: lista och poängtabell per cup med klubbens poängregler
-import { api, esc, spelarlank } from './lib.js?v=0.4.2';
+import { api, esc, spelarlank } from './lib.js?v=0.5.0';
 
 const KOL = [
   // nyckel, rubrik, förklaring, regel som avgör om kolumnen visas
@@ -19,7 +19,7 @@ let sortering = { k: 'summa', dir: -1 };
 
 export async function visaCuper(app) {
   const [cuper, turn, poang] = await Promise.all([
-    api('tavling?select=*&order=fran.desc.nullslast'),
+    api('tavling?typ=eq.klubbcup&select=*&order=fran.desc.nullslast'),
     api('v_tavling_turnering?select=tavling_id,roll,datum'),
     api('v_cup_poang?select=tavling_id,visas,summa'),
   ]);

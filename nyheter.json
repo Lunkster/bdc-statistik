@@ -2,6 +2,7 @@
  {
   "datum": "2026-10-31",
   "punkter": [
+   "Ny flik Serien: distriktsserien med serietabellen för varje division, alla lagmatcher och statistik för Bankeryds spelare i A- och B-laget. Tryck på en av Bankeryds lagmatcher för att se alla singlar och dubblar, och vidare på en match för varje leg runda för runda. Spelarsidan visar också spelarens siffror i distriktsserien (v0.5.0)",
    "Ny flik Cuper: klubbens cuper och serier med poängtabeller enligt klubbens poängregler – räknas automatiskt efter varje omgång, med markering för vilka som kvalat till finalspelet. Höstserien, sommarens cuper och vårens BDC Cup och Bad Magic Cup finns med (v0.4.0)",
    "Spelarlistan visar antal 180:or, snitt på första 9 pilarna och vunna matcher, och går att sortera på alla kolumner. Nyheterna finns under i-knappen uppe till höger (v0.3.1)",
    "Fler namn från n01 är kopplade till rätt person – nu syns de flesta spelares hela historik på spelarsidan (v0.3.0)",

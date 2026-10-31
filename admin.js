@@ -1,7 +1,7 @@
 // Admin: hämtning, koppla namn (allmänt eller per turnering), spelarregister, slå ihop, ändringslogg
-import { api, skriv, rpc, funktion, esc, fmt, datumTid, arAdmin } from './lib.js?v=0.4.2';
+import { api, skriv, rpc, funktion, esc, fmt, datumTid, arAdmin } from './lib.js?v=0.5.0';
 
-const flikar = [['', 'Översikt'], ['gora', 'Att göra'], ['namn', 'Koppla namn'], ['spelare', 'Spelarregister'], ['cuper', 'Cuper'], ['logg', 'Ändringslogg']];
+const flikar = [['', 'Översikt'], ['gora', 'Att göra'], ['namn', 'Koppla namn'], ['spelare', 'Spelarregister'], ['cuper', 'Cuper'], ['serien', 'Serien'], ['logg', 'Ändringslogg']];
 const meny = (aktiv) => `<div class="filter" role="navigation" aria-label="Admin">${flikar.map(([k, n]) =>
   `<a class="chip${k === aktiv ? ' vald' : ''}" href="#/admin${k ? `/${k}` : ''}">${n}</a>`).join('')}</div>`;
 const spNamn = (s) => (s ? (s.visningsnamn && s.visningsnamn !== s.namn ? `${s.namn} (${s.visningsnamn})` : s.namn) : '–');
@@ -18,6 +18,7 @@ export async function visaAdmin(app, del, arg) {
   if (del === 'cuper' && arg) return visaCupAdmin(app, arg);
   if (del === 'cuper') return visaCupLista(app);
   if (del === 'gora') return visaAttGora(app);
+  if (del === 'serien') return visaSerieAdmin(app);
   if (del === 'logg') return visaLogg(app);
   return visaOversikt(app);
 }
@@ -259,7 +260,7 @@ const REGLER = [
 const STD = { deltagande: 5, finalvinst: 5, finalforlust: 3, semifinal: 2, vunnen_match: 1, hog_utgang: 1, hog_utgang_fran: 100, t180: 1, t171: 0, kortset: 0, kortset_pilar: 21, bull: 1 };
 
 async function visaCupLista(app) {
-  const cuper = await api('tavling?select=id,namn,serie,fran,till,aktiv&order=fran.desc.nullslast');
+  const cuper = await api('tavling?typ=eq.klubbcup&select=id,namn,serie,fran,till,aktiv&order=fran.desc.nullslast');
   app.innerHTML = `
     <h1>Cuper</h1>${meny('cuper')}
     <p class="muted">En cup samlar turneringar med samma serie inom ett datumintervall – nya omgångar kommer med automatiskt. Under varje cup: poängregler, final, uteslutna omgångar och bull-utgångar.</p>
@@ -378,6 +379,7 @@ async function visaAttGora(app) {
     api('alias?select=spelare_id'),
     api('hamtning?select=status,start,meddelande&order=id.desc&limit=1'),
   ]);
+  const dsOkopplade = await api('v_ds_spelare?spelare_id=is.null&select=namn,lag').catch(() => []);
   // Automatiska kontroller – räknas varje gång sidan öppnas
   const okopplade = {};
   delt.filter((d) => !d.spelare_id).forEach((d) => { okopplade[d.namn] = (okopplade[d.namn] ?? 0) + 1; });
@@ -398,6 +400,7 @@ async function visaAttGora(app) {
     [utanEfternamn.length, 'administratör', `${utanEfternamn.length} spelare saknar efternamn`, utanEfternamn.slice(0, 10).map((x) => x.namn).join(', '), '#/admin/spelare'],
     [utanNr.length, 'administratör', `${utanNr.length} spelare saknar medlemsnummer`, '', '#/admin/spelare'],
     [tomma.length, 'administratör', `${tomma.length} inaktiva spelare utan kopplingar kan tas bort`, tomma.map((x) => x.namn).join(', '), '#/admin/spelare'],
+    [dsOkopplade.length, 'administratör', `${dsOkopplade.length} spelare i Bankeryds lag i distriktsserien är inte kopplade till en person`, dsOkopplade.map((x) => `${x.namn} (${x.lag})`).join(', '), '#/admin/serien'],
     [senaste?.status === 'fel' ? 1 : 0, 'administratör', 'Senaste hämtningen från n01 misslyckades', senaste?.meddelande ?? '', '#/admin'],
   ].filter(([n, ansvar]) => n > 0 && (!goraFilter.ansvar || goraFilter.ansvar === ansvar));
 
@@ -444,4 +447,47 @@ async function visaAttGora(app) {
     const titel = app.querySelector('#ny-titel').value.trim(); if (!titel) throw new Error('Skriv vad som ska göras');
     await skriv('POST', 'uppgift', { titel, ansvar: app.querySelector('#ny-ansvar').value, beskrivning: app.querySelector('#ny-beskrivning').value.trim() || null });
   }, 'Uppgiften är tillagd.'));
+}
+
+// ---------- distriktsserien: koppla lagmedlemmar till spelare ----------
+async function visaSerieAdmin(app) {
+  const [ligor, sp, alias, spelare] = await Promise.all([
+    api('tavling?typ=eq.distriktsserie&select=id,namn,n01_lgid,aktiv'),
+    api('v_ds_spelare?select=tdid,division,oid,lag,namn,spelare_id,kopplad_av_admin,matcher&order=lag,namn'),
+    api('ds_alias?select=tdid,oid,spelare_id'),
+    api('spelare?select=id,namn,visningsnamn&aktiv=eq.true'),
+  ]);
+  spelare.sort(sortSp);
+  const sp_ = Object.fromEntries(spelare.map((s) => [s.id, s]));
+  const harAlias = new Set(alias.map((a) => `${a.tdid}|${a.oid}`));
+  app.innerHTML = `
+    <h1>Distriktsserien</h1>${meny('serien')}
+    <p class="muted">Ligor som följs: ${ligor.map((l) => `<b>${esc(l.namn)}</b> <span class="muted liten">(n01 ${esc(l.n01_lgid ?? '')}${l.aktiv ? '' : ', inaktiv'})</span>`).join(', ') || 'inga'}.
+      Hela divisionernas tabeller hämtas, men matcher och spelarstatistik bara för Bankeryds lag.</p>
+    <h2>Bankeryds lagmedlemmar</h2>
+    <p class="muted liten">Namnen kopplas automatiskt om de stämmer med en spelares fullständiga namn eller ett allmänt n01-namn. Inom ett lag är namnen entydiga, så en koppling här gäller bara den här divisionen.</p>
+    <p class="svar" role="status"></p>
+    <div class="rulla"><table class="tabell">
+      <thead><tr><th class="fast">Namn i n01</th><th>Lag</th><th>Matcher</th><th>Kopplad till</th><th></th></tr></thead>
+      <tbody>${sp.map((r) => `<tr data-tdid="${esc(r.tdid)}" data-oid="${esc(r.oid)}">
+        <td class="fast">${esc(r.namn)}</td><td>${esc(r.lag)} <span class="muted liten">${esc(r.division)}</span></td><td>${r.matcher}</td>
+        <td><select class="ds-val">${val(spelare, r.spelare_id)}</select>
+          <br><small class="muted">${r.spelare_id ? (r.kopplad_av_admin ? 'kopplad av admin' : `automatiskt: ${esc(spNamn(sp_[r.spelare_id]))}`) : 'inte kopplad'}</small></td>
+        <td><button type="button" class="btn liten ds-spara">Spara</button>${harAlias.has(`${r.tdid}|${r.oid}`) ? ' <button type="button" class="btn liten sekundar ds-bort">Ta bort koppling</button>' : ''}</td></tr>`).join('')}</tbody>
+    </table></div>`;
+  const kor = async (f, text) => { try { await f(); await visaSerieAdmin(app); app.querySelector('.svar').textContent = text; } catch (e) { fel(app, e); } };
+  app.querySelectorAll('.ds-spara').forEach((b) => b.addEventListener('click', () => {
+    const tr = b.closest('tr'); const { tdid, oid } = tr.dataset;
+    const spelare_id = Number(tr.querySelector('.ds-val').value);
+    if (!spelare_id) { app.querySelector('.svar').textContent = 'Välj en spelare.'; return; }
+    kor(async () => {
+      const q = `ds_alias?tdid=eq.${encodeURIComponent(tdid)}&oid=eq.${encodeURIComponent(oid)}`;
+      if (harAlias.has(`${tdid}|${oid}`)) await skriv('PATCH', q, { spelare_id });
+      else await skriv('POST', 'ds_alias', { tdid, oid, spelare_id });
+    }, 'Sparat.');
+  }));
+  app.querySelectorAll('.ds-bort').forEach((b) => b.addEventListener('click', () => {
+    const { tdid, oid } = b.closest('tr').dataset;
+    kor(() => skriv('DELETE', `ds_alias?tdid=eq.${encodeURIComponent(tdid)}&oid=eq.${encodeURIComponent(oid)}`), 'Kopplingen är borttagen.');
+  }));
 }

@@ -96,6 +96,85 @@ erDiagram
   }
 ```
 
+## Distriktsserien (v0.5)
+Egna tabeller (`ds_*`), så att klubbens turneringar, spelarlista och cuper inte påverkas. En liga följs via en `tavling` med typ *distriktsserie* och `n01_lgid`.
+
+```mermaid
+erDiagram
+  tavling ||--o{ ds_division : "liga"
+  ds_division ||--o{ ds_lag : "lag"
+  ds_division ||--o{ ds_lagmatch : "lagmatcher"
+  ds_division ||--o{ ds_match : "Bankeryds delmatcher"
+  ds_match ||--|{ ds_match_sida : "två lag"
+  ds_match_sida ||--|{ ds_match_spelare : "1–2 spelare"
+  ds_match ||--o{ ds_leg : ""
+  ds_leg ||--o{ ds_kast : "rundor"
+  ds_division ||--o{ ds_alias : "lagmedlem"
+  spelare ||--o{ ds_alias : ""
+
+  ds_division {
+    text tdid PK
+    integer tavling_id FK
+    text division
+    smallint status
+    bigint n01_uppdaterad
+    jsonb data
+    jsonb tabell
+    jsonb spelarstatistik
+  }
+  ds_lag {
+    text tdid PK
+    text tpid PK
+    text namn
+    boolean bankeryd
+  }
+  ds_lagmatch {
+    text tdid PK
+    text nyckel PK
+    text lag_a
+    text lag_b
+    smallint vunna_a
+    smallint vunna_b
+    date datum
+  }
+  ds_match {
+    text mid PK
+    text tdid FK
+    text nyckel
+    smallint nr
+    text delmatch
+    boolean dubbel
+    boolean klar
+    jsonb data
+  }
+  ds_match_sida {
+    text mid PK
+    smallint sida PK
+    text lag_tpid
+    smallint legs
+    integer poang
+    integer pilar
+  }
+  ds_match_spelare {
+    text mid PK
+    smallint sida PK
+    smallint plats PK
+    text oid
+    text namn
+  }
+  ds_alias {
+    text tdid PK
+    text oid PK
+    integer spelare_id FK
+  }
+```
+
+- **Urval (beslut Henrik 2026-10-31):** alla divisioner i ligan med serietabell (`tabell` = n01:s standings) och alla lagmatchresultat (`lg_result`); delmatcher, legs, rundor och spelarstatistik (`player_stats_list`) bara för lag med *Bankeryd* i namnet.
+- **Lagmatch:** nyckeln är n01:s `<grupp>_<id>` ur `tmid` (`<tdid>_lg_0_xpj5_<lag>_<lag>`); `vunna_a/b` = vunna singlar + dubblar. 18 delmatcher per lagmatch: 16 singlar och 2 dubblar.
+- **Lagmedlemmar:** `oid` gäller i hela divisionen. Kopplas till `spelare` via `ds_alias` (admin), annars samma fullständiga namn (om entydigt), annars ett allmänt `alias`.
+- **Pågående:** divisionerna har status 30 (pågår) hela säsongen; hämtningen jämför `updateTime` och hämtar om ändrade divisioner och delmatcher.
+- **Kontroll 2026-10-31:** singlar + dubblar ur delmatcherna stämmer med n01:s `set`/`winSet` för alla 11 spelare i Bankeryd A och B.
+
 ## Regler
 - **Källa:** n01:s API, alla turneringar med *Bankeryd* i titeln. Importen skriver med service role; rådata sparas i `data` (jsonb).
 - **Spelaridentitet:** n01 har inget spelar-ID mellan turneringar. `alias` kopplar ett n01-namn (skiftlägesokänsligt) till en `spelare` – allmänt (`tdid` tom) eller bara i en turnering (`tdid` satt, går före det allmänna).
@@ -116,11 +195,16 @@ erDiagram
 | `v_deltagare` | Deltagare med kopplad `spelare_id` (turneringsspecifikt alias före allmänt) |
 | `v_turnering_statistik` | n01:s statistik per spelare och turnering ur `stats_list`: placering, matcher, legs, snitt, first 9, 100+/140+/170+/180, high out, bästa/sämsta leg |
 | `v_turnering` | Turneringslistan: serie, omgång, antal deltagare och matcher, vinnare, länk till n01 |
-| `v_match` | En rad per match med båda sidorna: legs, snitt, kopplad spelare || `v_spelare_match` | En rad per match och spelare: motståndare, legs, snitt, first 9, pilar per vunnet leg, bästa leg, högsta runda och utgång, 100+/140+/170+/180 – spelarsidans grafer, rekord och matchsidan |
+| `v_match` | En rad per match med båda sidorna: legs, snitt, kopplad spelare |
+| `v_spelare_match` | En rad per match och spelare: motståndare, legs, snitt, first 9, pilar per vunnet leg, bästa leg, högsta runda och utgång, 100+/140+/170+/180 – spelarsidans grafer, rekord och matchsidan |
 | `v_namn_underlag` | Ett n01-namn per turnering: datum, serie, snitt, placering, koppling per turnering och allmänt – adminsidans underlag för att koppla namn |
 | `v_tavling_turnering` | En cups turneringar: regeln (serie + datum) plus tillagda, minus uteslutna; roll omgång eller final |
 | `v_cup_rad` | Per cup, omgång och deltagare: placering, vunna matcher, 180, 171, hög utgång (≥ cupens gräns), kortset (≤ cupens pilar) |
 | `v_cup_poang` | Poängtabellen per cup och person med cupens poängregler, inklusive inmatade bull-utgångar |
 | `intern.match_kast` | Materialiserad vy (schemat `intern`, inte i API:et): rundorna summerade per match och sida. Räknas om av `public.uppdatera_statistik()` när hämtningen fått nya matcher |
+| `v_ds_tabell` | Distriktsserien: serietabell per division (placering, spelade, V/O/F, +/−, poäng), Bankeryds lag markerade |
+| `v_ds_lagmatch` | Distriktsserien: lagmatcher med lagnamn, resultat och antal hämtade delmatcher |
+| `v_ds_spelare` | Distriktsserien: Bankeryds lagmedlemmar med n01:s statistik och kopplad spelare, singlar och dubblar vunna–spelade |
+| `v_ds_match` | Distriktsserien: delmatcher med båda lagen, legs, snitt och spelarna (jsonb) |
 
 Vyerna har `security_invoker = true` (följer tabellernas RLS) och är skrivskyddade.

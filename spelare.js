@@ -1,6 +1,6 @@
 // Spelarsida (kopplad person eller okopplat n01-namn) med grafer och rekord, samt spelarlista
-import { api, esc, fmt, heltal, spelarlank } from './lib.js?v=0.4.2';
-import { tidsdiagram } from './diagram.js?v=0.4.2';
+import { api, esc, fmt, heltal, spelarlank } from './lib.js?v=0.5.0';
+import { tidsdiagram } from './diagram.js?v=0.5.0';
 
 let vyLage = 'turnering';   // 'turnering' | 'match' – minns mellan spelare
 
@@ -62,9 +62,10 @@ export async function visaSpelare(app, id) {
     api(`v_spelare_match?spelare_id=eq.${id}&select=*`),
     api(`alias?spelare_id=eq.${id}&select=n01_namn,tdid`),
   ]);
+  const ds = await api(`v_ds_spelare?spelare_id=eq.${id}&select=*`).catch(() => []);
   if (!p) { app.innerHTML = '<p class="fel">Spelaren finns inte.</p>'; return; }
   const namnen = [...new Set(alias.map((a) => a.n01_namn))].join(', ');
-  await rita(app, p.namn, turn, matcher, `Heter i n01: ${esc(namnen)}`);
+  await rita(app, p.namn, turn, matcher, `Heter i n01: ${esc(namnen)}`, dsHtml(ds));
 }
 
 export async function visaNamn(app, namn) {
@@ -79,7 +80,20 @@ export async function visaNamn(app, namn) {
 const ms = (datum, tid) => (tid ? Date.parse(tid) : Date.parse(`${datum}T12:00:00Z`));
 const ttypNamn = (m) => (m.ttype === 'rr' ? 'gruppspel' : m.ttype === 't3' ? 'bronsmatch' : 'slutspel');
 
-async function rita(app, rubrik, turnRader, matcher, under) {
+// Distriktsserien på spelarsidan: en rad per division (n01:s siffror, singlar och dubblar)
+function dsHtml(rader) {
+  if (!rader.length) return '';
+  return `<h2>Distriktsserien</h2>
+    <div class="rulla"><table class="tabell">
+      <thead><tr><th class="fast">Lag</th><th>Singel</th><th>Dubbel</th><th>Legs</th><th>Snitt</th><th>F9</th><th>180</th><th>HO</th><th>BL</th></tr></thead>
+      <tbody>${rader.map((r) => `<tr><td class="fast"><a href="#/serien/${encodeURIComponent(r.tdid)}">${esc(r.lag)} (${esc(r.division)})</a></td>
+        <td>${r.singlar_vunna}–${r.singlar}</td><td>${r.dubblar_vunna}–${r.dubblar}</td><td>${r.vunna_legs}–${r.legs}</td>
+        <td>${fmt(r.snitt, 2)}</td><td>${fmt(r.snitt_f9, 2)}</td><td>${r.t180 || ''}</td><td>${r.high_out ?? ''}</td><td>${r.basta_leg ?? ''}</td></tr>`).join('')}</tbody>
+    </table></div>
+    <p class="muted liten">Ingår inte i statistiken ovan, som gäller klubbens turneringar.</p>`;
+}
+
+async function rita(app, rubrik, turnRader, matcher, under, extra = '') {
   const tdids = [...new Set(turnRader.map((r) => r.tdid).concat(matcher.map((m) => m.tdid)))];
   const turnInfo = tdids.length ? await api(`v_turnering?tdid=in.(${tdids.map((t) => `"${t}"`).join(',')})&select=tdid,datum,serie,omgang,titel,deltagare`) : [];
   const T = Object.fromEntries(turnInfo.map((x) => [x.tdid, x]));
@@ -149,7 +163,7 @@ async function rita(app, rubrik, turnRader, matcher, under) {
         <td>${r.placering ? `${r.placering}/${r.t.deltagare ?? ''}` : '–'}</td>
         <td>${r.vunna_matcher}–${r.matcher}</td><td>${fmt(r.snitt, 2)}</td><td>${fmt(r.snitt_f9, 2)}</td>
         <td>${r.t180 || ''}</td><td>${r.high_out ?? ''}</td></tr>`).join('')}</tbody>
-    </table></div>`;
+    </table></div>${extra}`;
 
   const ritaGrafer = () => {
     app.querySelectorAll('[data-lage]').forEach((b) => b.classList.toggle('vald', b.dataset.lage === vyLage));

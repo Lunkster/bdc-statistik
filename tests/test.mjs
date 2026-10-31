@@ -39,7 +39,20 @@ await page.route('https://xkfjbrkrtetkbjugresq.supabase.co/**', async (route) =>
     return svara(tabell === 'spelare' ? [{ id: 99 }] : []); }
   if (tabell === 'v_turnering') return svara(q.get('tdid') ? F.turn : F.lista);
   if (tabell === 'turnering') return svara((q.get('select') ?? '').includes('titel') ? F.turnlista : F.rad);
-  if (tabell === 'tavling') return svara(F.tavling);
+  if (tabell === 'tavling') return svara(q.get('typ') === 'eq.distriktsserie' ? F.ds_liga : F.tavling);
+  if (tabell === 'ds_division') return svara(F.ds_division);
+  if (tabell === 'ds_lag') return svara(F.ds_lag);
+  if (tabell === 'ds_alias') return svara([]);
+  if (tabell === 'v_ds_tabell') return svara(F.ds_tabell.filter((r) => `eq.${r.tdid}` === q.get('tdid')));
+  if (tabell === 'v_ds_lagmatch') return svara(F.ds_lagmatch.filter((r) => `eq.${r.tdid}` === q.get('tdid') && (!q.get('nyckel') || `eq.${r.nyckel}` === q.get('nyckel'))));
+  if (tabell === 'v_ds_spelare') {
+    if (q.get('spelare_id') === 'is.null') return svara(F.ds_spelare.filter((r) => !r.spelare_id));
+    if (q.get('spelare_id')) return svara(F.ds_spelare.filter((r) => `eq.${r.spelare_id}` === q.get('spelare_id')));
+    return svara(F.ds_spelare.filter((r) => !q.get('tdid') || `eq.${r.tdid}` === q.get('tdid')));
+  }
+  if (tabell === 'v_ds_match') return svara(F.ds_match.filter((r) => (!q.get('mid') || `eq.${r.mid}` === q.get('mid')) && (!q.get('nyckel') || `eq.${r.nyckel}` === q.get('nyckel'))));
+  if (tabell === 'ds_leg') return svara(F.leg);
+  if (tabell === 'ds_kast') return svara(F.kast);
   if (tabell === 'v_tavling_turnering') return svara(F.tt);
   if (tabell === 'v_cup_poang') return svara(F.cup_poang);
   if (tabell === 'tavling_val' || tabell === 'poang_manuell') return svara([]);
@@ -146,7 +159,7 @@ const namnLista = await page.locator('#spelarlista tbody tr td:first-child').all
 if (namnLista.join() !== [...namnLista].sort((a, b) => a.localeCompare(b, 'sv')).join()) fel.push('sortering på namn');
 await kontroll('5b-spelarlista');
 await page.click('a.info'); await page.waitForSelector('.nyhet');
-if ((await page.locator('.nyhet li').count()) !== 2) fel.push('nyheter');
+if ((await page.locator('.nyhet li').count()) < 1) fel.push('nyheter');
 // 4c. Cuper
 await page.click('a[data-route="cuper"]'); await page.waitForSelector('.cupkort');
 await page.click('.cupkort'); await page.waitForSelector('.poangtabell');
@@ -158,6 +171,29 @@ if (!rubriker.some((r) => r.includes('KS')) || !rubriker.some((r) => r.includes(
 await page.click('.poangtabell [data-sort="visas"]');
 if ((await page.locator('.poangtabell tbody tr >> nth=0 >> td >> nth=1').innerText()) !== 'Ada') fel.push('cup: sortering på namn');
 await kontroll('4c-cup');
+// 4d. Distriktsserien
+await page.click('a[data-route="serien"]'); await page.waitForSelector('.serietabell');
+if ((await page.locator('.serietabell tr.vart').count()) !== 1) fel.push('serien: Bankeryd markeras inte i tabellen');
+if ((await page.locator('.filter .chip').count()) !== 2) fel.push('serien: divisionsval');
+if ((await page.locator('#ds-spelare tbody tr').count()) !== 2) fel.push('serien: spelare');
+if (!(await page.locator('#ds-spelare').innerText()).includes('6–8')) fel.push('serien: singlar vunna–spelade');
+await page.click('#ds-spelare [data-sort="snitt"]');
+if ((await page.locator('#ds-spelare tbody tr >> nth=0 >> td >> nth=0').innerText()) !== 'Ada') fel.push('serien: sortering på snitt');
+if ((await page.locator('a.lagmatch').count()) !== 1 || (await page.locator('div.lagmatch').count()) !== 1) fel.push('serien: bara Bankeryds lagmatcher ska gå att öppna');
+await kontroll('4d-serien');
+await page.click('a.lagmatch'); await page.waitForSelector('.delmatcher');
+if ((await page.locator('.delmatcher tbody tr').count()) !== 2) fel.push('lagmatch: delmatcher');
+if (!(await page.locator('.delmatcher').innerText()).includes('Ada & Okänd')) fel.push('lagmatch: dubbelns spelare');
+await kontroll('4e-lagmatch');
+await page.click('.delmatcher a[href="#/dsmatch/dm1"] >> nth=0'); await page.waitForSelector('.leg');
+if ((await page.locator('.leg').count()) !== 3) fel.push('dsmatch: legs');
+if (!(await page.locator('.jamfor').innerText()).includes(',')) fel.push('dsmatch: decimalkomma');
+await kontroll('4f-dsmatch');
+await page.goto(B + '#/spelare/47'); await page.waitForSelector('.nyckeltal');
+await page.waitForSelector('a[href="#/serien/t_div2"]');
+if (!(await page.locator('main').innerText()).includes('6–8')) fel.push('spelarsidan: distriktsserien saknas');
+await page.goto(B + '#/serien/t_div3'); await page.waitForSelector('h1');
+if (await page.locator('#ds-spelare').count()) fel.push('serien: division utan Bankeryd visar spelare');
 // 5b. Admin: koppla namn, register, logg
 await page.goto(B + '#/admin/namn/Ada'); await page.waitForSelector('#allman');
 await page.selectOption('#allman', '90'); await page.click('#spara-allman');
@@ -193,6 +229,11 @@ if ((await page.locator('.uppgift').count()) !== 1) fel.push('att göra: filter 
 await page.locator('.uppgift .klar-ruta').first().check(); await page.waitForTimeout(300);
 if (!skrivningar.some((s) => s.startsWith('PATCH uppgift?id=eq.2') && s.includes('klar'))) fel.push('att göra: bocka av');
 await kontroll('6e-att-gora');
+if (!(await page.locator('.kontroller').innerText()).includes('distriktsserien')) fel.push('att göra: okopplade i distriktsserien');
+await page.goto(B + '#/admin/serien'); await page.waitForSelector('.ds-val');
+await page.locator('tr[data-oid="o2"] .ds-val').selectOption('90'); await page.click('tr[data-oid="o2"] .ds-spara'); await page.waitForTimeout(300);
+if (!skrivningar.some((s) => s.startsWith('POST ds_alias') && s.includes('"oid":"o2"') && s.includes('"spelare_id":90'))) fel.push('admin serien: koppling skrevs inte');
+await kontroll('6f-admin-serien');
 await page.goto(B + '#/admin/logg'); await page.waitForSelector('table');
 await page.goto(B + '#/admin/namn'); await page.waitForSelector('table');
 // 6. Skrivbord

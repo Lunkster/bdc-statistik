@@ -1,5 +1,5 @@
 // Turneringslistan: alla turneringar, nyast först, filter på serie
-import { api, esc } from './lib.js?v=0.4.2';
+import { api, esc } from './lib.js?v=0.5.0';
 
 let valdSerie = '';
 
