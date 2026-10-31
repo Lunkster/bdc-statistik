@@ -1,0 +1,5 @@
+-- 11: n01:s summor för första 9 pilarna i v_turnering_statistik (2026-10-31)
+-- Behövs för ett rättvist first 9-snitt över flera turneringar i spelarlistan. Kolumnerna f9_poang och f9_pilar läggs sist.
+-- Vyn i övrigt som i 07_statistik_utan_borttagna.sql, plus:
+--   (e.value ->> 'f9Score')::int as f9_poang,
+--   (e.value ->> 'f9Darts')::int as f9_pilar

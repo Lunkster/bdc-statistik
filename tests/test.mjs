@@ -129,6 +129,19 @@ if (!(await page.locator('#adminlank').isVisible())) fel.push('admin ser inte ad
 await page.goto(B + '#/admin'); await page.waitForSelector('#hamta');
 await page.click('#hamta'); await page.waitForSelector('#hamtsvar:text("Klart")');
 await kontroll('6-admin');
+// 4b. Spelarlistan: sortering, nyheter
+await page.goto(B + '#/spelare'); await page.waitForSelector('#spelarlista table');
+const huvud = await page.locator('#spelarlista th').allInnerTexts();
+if (!huvud.some((h) => h.includes('180')) || !huvud.some((h) => h.toLowerCase().includes('first 9'))) fel.push('spelarlistan saknar kolumner: ' + huvud);
+await page.click('[data-sort="snitt"]');
+const snitt = (await page.locator('#spelarlista tbody tr td:nth-child(5)').allInnerTexts()).map((x) => Number(x.replace(',', '.'))).filter((x) => !Number.isNaN(x));
+if (snitt.some((v, i) => i && v > snitt[i - 1])) fel.push('sortering på snitt: ' + snitt);
+await page.click('[data-sort="namn"]');
+const namnLista = await page.locator('#spelarlista tbody tr td:first-child').allInnerTexts();
+if (namnLista.join() !== [...namnLista].sort((a, b) => a.localeCompare(b, 'sv')).join()) fel.push('sortering på namn');
+await kontroll('5b-spelarlista');
+await page.click('a.info'); await page.waitForSelector('.nyhet');
+if ((await page.locator('.nyhet li').count()) !== 2) fel.push('nyheter');
 // 5b. Admin: koppla namn, register, logg
 await page.goto(B + '#/admin/namn/Ada'); await page.waitForSelector('#allman');
 await page.selectOption('#allman', '90'); await page.click('#spara-allman');

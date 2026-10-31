@@ -11,4 +11,6 @@
 - Inga personuppgifter, exporter eller nycklar (utom publishable key) i repot – testdatan i `tests/` har påhittade namn.
 - Versionsnummer i `index.html` (`?v=`), i importerna och i `#version` ändras vid varje release.
 - Testa med `tests/test.mjs` (attrapp, amerikanska inställningar för att fånga fel format) före commit.
+- Nyheter: skriv i Obsidian `Dart-klubbdatabas - Nyheter.md` och kör `python3 ~/Dokument/Claude/Dart-klubbdatabas/skript/nyheter.py` → `nyheter.json` (visas under i-knappen). Inga spelarnamn i nyheterna – repot är publikt.
+- Databasändringar som tar bort data (delete, drop) går inte via Claudes Supabase-koppling (bekräftelsefrågan når inte Henrik): lägg SQL i en fil och be Henrik köra den i SQL Editor, eller gör det i appen.
 - Repot: GitHub `Lunkster/bdc-statistik` (publikt, Pages från `main` / rot) – Henrik pushar själv.

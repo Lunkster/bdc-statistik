@@ -1,33 +1,58 @@
 // Spelarsida (kopplad person eller okopplat n01-namn) med grafer och rekord, samt spelarlista
-import { api, esc, fmt, heltal, spelarlank } from './lib.js?v=0.3.0';
-import { tidsdiagram } from './diagram.js?v=0.3.0';
+import { api, esc, fmt, heltal, spelarlank } from './lib.js?v=0.3.1';
+import { tidsdiagram } from './diagram.js?v=0.3.1';
 
 let vyLage = 'turnering';   // 'turnering' | 'match' – minns mellan spelare
+
+let listSort = { k: 't', dir: -1 };   // kolumn och riktning (-1 = störst först) – minns mellan besök
 
 export async function visaSpelarlista(app) {
   const [spelare, rader] = await Promise.all([
     api('spelare?select=id,namn,visningsnamn&aktiv=eq.true&order=namn'),
-    api('v_turnering_statistik?select=spelare_id,namn,poang,pilar,placering'),
+    api('v_turnering_statistik?select=spelare_id,namn,poang,pilar,placering,t180,f9_poang,f9_pilar,matcher,vunna_matcher'),
   ]);
   const sum = new Map();
   for (const r of rader) {
     if (!r.namn && !r.spelare_id) continue;
     const k = r.spelare_id ? `s${r.spelare_id}` : `n${r.namn}`;
-    const s = sum.get(k) ?? { id: r.spelare_id, namn: r.namn, t: 0, p: 0, d: 0, segrar: 0 };
-    s.t++; s.p += r.poang ?? 0; s.d += r.pilar ?? 0; if (r.placering === 1) s.segrar++;
+    const s = sum.get(k) ?? { id: r.spelare_id, namn: r.namn, t: 0, p: 0, d: 0, f9p: 0, f9d: 0, t180: 0, m: 0, mv: 0, segrar: 0 };
+    s.t++; s.p += r.poang ?? 0; s.d += r.pilar ?? 0; s.f9p += r.f9_poang ?? 0; s.f9d += r.f9_pilar ?? 0;
+    s.t180 += r.t180 ?? 0; s.m += r.matcher ?? 0; s.mv += r.vunna_matcher ?? 0; if (r.placering === 1) s.segrar++;
     sum.set(k, s);
   }
   const namnPa = Object.fromEntries(spelare.map((s) => [s.id, s.namn]));
-  const lista = [...sum.values()].map((s) => ({ ...s, namn: s.id ? namnPa[s.id] ?? s.namn : s.namn, snitt: s.d ? (3 * s.p) / s.d : null }))
-    .sort((a, b) => b.t - a.t || (a.namn ?? '').localeCompare(b.namn ?? '', 'sv'));
+  const lista = [...sum.values()].map((s) => ({ ...s, namn: s.id ? namnPa[s.id] ?? s.namn : s.namn,
+    snitt: s.d ? (3 * s.p) / s.d : null, f9: s.f9d ? (3 * s.f9p) / s.f9d : null, vinst: s.m ? s.mv / s.m : null }));
   const okopplade = lista.filter((s) => !s.id).length;
+  const kol = [
+    ['namn', 'Spelare', 1], ['t', 'Turneringar', -1], ['segrar', 'Segrar', -1], ['vinst', 'Vunna matcher', -1],
+    ['snitt', 'Snitt', -1], ['f9', 'First 9', -1], ['t180', '180', -1],
+  ];
+  const rita = () => {
+    const { k, dir } = listSort;
+    const sorterad = [...lista].sort((a, b) => {
+      if (k === 'namn') return dir * (a.namn ?? '').localeCompare(b.namn ?? '', 'sv');
+      const va = a[k], vb = b[k];
+      if (va == null && vb == null) return 0; if (va == null) return 1; if (vb == null) return -1;
+      return dir * (va - vb) || b.t - a.t;
+    });
+    document.getElementById('spelarlista').innerHTML = `<table class="tabell">
+      <thead><tr>${kol.map(([n, r], i) => `<th${i ? '' : ' class="fast"'}><button type="button" data-sort="${n}" class="${n === k ? 'sorterad' : ''}">${r}${n === k ? (dir === 1 ? ' ▲' : ' ▼') : ''}</button></th>`).join('')}</tr></thead>
+      <tbody>${sorterad.map((s) => `<tr><td class="fast">${spelarlank(s.namn, s.id)}</td><td>${s.t}</td><td>${s.segrar || ''}</td>
+        <td>${s.m ? `${s.mv}–${s.m}` : '–'}</td><td>${fmt(s.snitt, 2)}</td><td>${fmt(s.f9, 2)}</td><td>${s.t180 || ''}</td></tr>`).join('')}</tbody>
+    </table>`;
+  };
   app.innerHTML = `
     <h1>Spelare</h1>
-    <p class="muted">${lista.length - okopplade} spelare i registret${okopplade ? ` och ${okopplade} namn från n01 som inte är kopplade till en person än (kursiva)` : ''}.</p>
-    <div class="rulla"><table class="tabell">
-      <thead><tr><th class="fast">Spelare</th><th>Turneringar</th><th>Segrar</th><th>Snitt</th></tr></thead>
-      <tbody>${lista.map((s) => `<tr><td class="fast">${spelarlank(s.namn, s.id)}</td><td>${s.t}</td><td>${s.segrar || ''}</td><td>${fmt(s.snitt, 2)}</td></tr>`).join('')}</tbody>
-    </table></div>`;
+    <p class="muted">${lista.length - okopplade} spelare i registret${okopplade ? ` och ${okopplade} namn från n01 som inte är kopplade till en person än (kursiva)` : ''}. Tryck på en rubrik för att sortera.</p>
+    <div class="rulla" id="spelarlista"></div>`;
+  app.querySelector('#spelarlista').addEventListener('click', (e) => {
+    const b = e.target.closest('[data-sort]'); if (!b) return;
+    const n = b.dataset.sort, std = kol.find((x) => x[0] === n)[2];
+    listSort = listSort.k === n ? { k: n, dir: -listSort.dir } : { k: n, dir: std };
+    rita();
+  });
+  rita();
 }
 
 export async function visaSpelare(app, id) {

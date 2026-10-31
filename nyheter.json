@@ -1,0 +1,13 @@
+[
+ {
+  "datum": "2026-10-31",
+  "punkter": [
+   "Spelarlistan visar antal 180:or, snitt på första 9 pilarna och vunna matcher, och går att sortera på alla kolumner. Nyheterna finns under i-knappen uppe till höger (v0.3.1)",
+   "Fler namn från n01 är kopplade till rätt person – nu syns de flesta spelares hela historik på spelarsidan (v0.3.0)",
+   "Graferna på spelarsidan har fått en andra, lugnare trendlinje (streckad) som visar utvecklingen över längre tid (v0.2.1)",
+   "Spelarsidan har fått grafer över hur man utvecklas – snitt, första nio pilarna, pilar per vunnet leg, bästa leg, högsta runda och högsta utgång – per turnering eller per match. Rekorden (bästa snitt, bästa leg, högsta utgång …) går att trycka på och leder till matchen eller turneringen. Ny matchsida med varje leg runda för runda; tryck på resultatet i slutspelet för att komma dit (v0.2.0)",
+   "Sidan Spelare fungerar igen – den stannade på ett fel för en spelare som strukits ur en turnering (v0.1.1)",
+   "Första versionen: logga in med klubbkoden och se alla klubbens turneringar på n01 sedan januari, filtrera på serie (Torsdagscup, Söndagscup, BDC Cup …). Varje turnering visar samma statistik som n01 – snitt, first 9, 100+/140+/180, high out och bästa leg – plus topplistor, grupptabeller och slutspelet. Tryck på ett namn för att se spelarens turneringar och nyckeltal; under Spelare finns alla. Nya turneringar hämtas automatiskt torsdag och söndag kl. 23:00 (v0.1.0)"
+  ]
+ }
+]

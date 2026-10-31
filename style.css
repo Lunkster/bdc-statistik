@@ -167,6 +167,15 @@ a.resultat:hover { text-decoration: none; background: var(--rosa); color: #fff; 
 .runda.hog { background: var(--rosa); color: #fff; }
 .runda.ut { background: var(--mint); color: var(--bg); font-weight: 800; }
 
+/* nyheter */
+.tabs a.info { width: 2rem; height: 2rem; padding: 0; display: inline-grid; place-items: center; border: 2px solid var(--dampad);
+  border-radius: 50%; font-weight: 800; font-style: italic; font-family: Georgia, serif; }
+.tabs a.info.aktiv { border-color: var(--rosa); }
+.nyhet { margin-bottom: .7rem; }
+.nyhet h2 { margin: 0 0 .3rem; font-size: 1rem; color: var(--mint); }
+.nyhet ul { margin: 0; padding-left: 1.2rem; }
+.nyhet li { margin: .25rem 0; }
+
 /* admin */
 .varning { color: #f4b860; }
 .formrad { display: flex; flex-wrap: wrap; gap: .5rem; align-items: center; margin: .5rem 0; }
