@@ -1,5 +1,5 @@
 // Spelarsida (kopplad person eller okopplat n01-namn) och spelarlista
-import { api, esc, fmt, heltal, spelarlank } from './lib.js?v=0.1.0';
+import { api, esc, fmt, heltal, spelarlank } from './lib.js?v=0.1.1';
 
 export async function visaSpelarlista(app) {
   const [spelare, rader] = await Promise.all([
@@ -8,6 +8,7 @@ export async function visaSpelarlista(app) {
   ]);
   const sum = new Map();
   for (const r of rader) {
+    if (!r.namn && !r.spelare_id) continue;
     const k = r.spelare_id ? `s${r.spelare_id}` : `n${r.namn}`;
     const s = sum.get(k) ?? { id: r.spelare_id, namn: r.namn, t: 0, p: 0, d: 0, segrar: 0 };
     s.t++; s.p += r.poang ?? 0; s.d += r.pilar ?? 0; if (r.placering === 1) s.segrar++;
@@ -15,7 +16,7 @@ export async function visaSpelarlista(app) {
   }
   const namnPa = Object.fromEntries(spelare.map((s) => [s.id, s.namn]));
   const lista = [...sum.values()].map((s) => ({ ...s, namn: s.id ? namnPa[s.id] ?? s.namn : s.namn, snitt: s.d ? (3 * s.p) / s.d : null }))
-    .sort((a, b) => b.t - a.t || a.namn.localeCompare(b.namn, 'sv'));
+    .sort((a, b) => b.t - a.t || (a.namn ?? '').localeCompare(b.namn ?? '', 'sv'));
   const okopplade = lista.filter((s) => !s.id).length;
   app.innerHTML = `
     <h1>Spelare</h1>

@@ -1,9 +1,9 @@
 // Router och inloggning
-import { login, logout, isLoggedIn, arAdmin, esc } from './lib.js?v=0.1.0';
-import { visaTurneringar } from './turneringar.js?v=0.1.0';
-import { visaTurnering } from './turnering.js?v=0.1.0';
-import { visaSpelare, visaNamn, visaSpelarlista } from './spelare.js?v=0.1.0';
-import { visaAdmin } from './admin.js?v=0.1.0';
+import { login, logout, isLoggedIn, arAdmin, esc } from './lib.js?v=0.1.1';
+import { visaTurneringar } from './turneringar.js?v=0.1.1';
+import { visaTurnering } from './turnering.js?v=0.1.1';
+import { visaSpelare, visaNamn, visaSpelarlista } from './spelare.js?v=0.1.1';
+import { visaAdmin } from './admin.js?v=0.1.1';
 
 const app = document.getElementById('app');
 
@@ -11,7 +11,7 @@ function visaLogin(meddelande = '') {
   document.body.classList.add('utloggad');
   app.innerHTML = `
     <form class="kort login" id="login">
-      <img src="emblem.png?v=0.1.0" alt="Dart Club Bankeryd" class="emblem">
+      <img src="emblem.png?v=0.1.1" alt="Dart Club Bankeryd" class="emblem">
       <h1>Klubbstatistik</h1>
       <label>Klubbkod <input type="password" name="kod" autocomplete="current-password" required></label>
       <label class="rad"><input type="checkbox" name="admin"> Logga in som admin</label>

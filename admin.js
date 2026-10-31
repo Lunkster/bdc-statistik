@@ -1,5 +1,5 @@
 // Admin v0.1: hämta nu, hämtlogg, okopplade namn (kopplingarna görs på adminsidan i v0.3)
-import { api, funktion, esc, datumTid, arAdmin } from './lib.js?v=0.1.0';
+import { api, funktion, esc, datumTid, arAdmin } from './lib.js?v=0.1.1';
 
 export async function visaAdmin(app) {
   if (!arAdmin()) { app.innerHTML = '<p class="fel">Bara för admin.</p>'; return; }
