@@ -25,7 +25,12 @@ page.on('pageerror', (e) => fel.push('pageerror: ' + e.message));
 page.on('console', (m) => { if (m.type() === 'error') fel.push('console: ' + m.text()); });
 await page.route('https://xkfjbrkrtetkbjugresq.supabase.co/**', async (route) => {
   const u = new URL(route.request().url());
-  const svara = (data, status = 200) => route.fulfill({ status, contentType: 'application/json', body: JSON.stringify(data) });
+  const sq = u.searchParams;
+  // offset/limit som PostgREST (exporten läser i sidor tills en tom sida kommer)
+  const svara = (data, status = 200) => {
+    if (Array.isArray(data) && sq.get('offset') !== null) data = data.slice(Number(sq.get('offset')), Number(sq.get('offset')) + Number(sq.get('limit') ?? 1e9));
+    return route.fulfill({ status, contentType: 'application/json', body: JSON.stringify(data) });
+  };
   if (u.pathname.startsWith('/auth/v1/token')) {
     const b = JSON.parse(route.request().postData());
     if (b.password !== 'rattkod') return svara({ error: 'invalid' }, 400);
@@ -77,6 +82,7 @@ await page.route('https://xkfjbrkrtetkbjugresq.supabase.co/**', async (route) =>
   if (tabell === 'alias') return svara(q.get('n01_namn') ? [] : F.alias);
   if (tabell === 'hamtning') return svara(F.hamtning);
   if (tabell === 'v_deltagare') return svara([{ namn: 'Ada' }, { namn: 'Ada' }, { namn: 'Bo' }]);
+  if (['turnering_statistik', 'deltagare', 'match', 'match_spelare', 'ds_lagmatch', 'ds_match', 'ds_match_sida', 'ds_match_spelare'].includes(tabell)) return svara([]);
   return svara([], 404);
 });
 
@@ -243,6 +249,15 @@ await page.goto(B + '#/admin/serien'); await page.waitForSelector('.ds-val');
 await page.locator('tr[data-oid="o2"] .ds-val').selectOption('90'); await page.click('tr[data-oid="o2"] .ds-spara'); await page.waitForTimeout(300);
 if (!skrivningar.some((s) => s.startsWith('POST ds_alias') && s.includes('"oid":"o2"') && s.includes('"spelare_id":90'))) fel.push('admin serien: koppling skrevs inte');
 await kontroll('6f-admin-serien');
+// Export
+await page.goto(B + '#/admin/export'); await page.waitForSelector('#exportera');
+const [csvFil] = await Promise.all([page.waitForEvent('download'), page.click('.csv[data-namn="spelare"]')]);
+const csvText = fs.readFileSync(await csvFil.path(), 'utf8');
+if (!csvText.startsWith('\uFEFFid;namn;') || !csvText.includes('47;Dag;')) fel.push('export: spelare.csv ' + csvText.slice(0, 80));
+const [zipFil] = await Promise.all([page.waitForEvent('download', { timeout: 60000 }), page.click('#exportera')]);
+fs.copyFileSync(await zipFil.path(), '/tmp/bdc-export.zip');
+await page.waitForSelector('#status:text("Klart")');
+await kontroll('6g-export');
 await page.goto(B + '#/admin/logg'); await page.waitForSelector('table');
 await page.goto(B + '#/admin/namn'); await page.waitForSelector('table');
 // 6. Skrivbord

@@ -1,7 +1,8 @@
 // Admin: hämtning, koppla namn (allmänt eller per turnering), spelarregister, slå ihop, ändringslogg
-import { api, skriv, rpc, funktion, esc, fmt, datumTid, arAdmin } from './lib.js?v=0.5.2';
+import { api, skriv, rpc, funktion, esc, fmt, datumTid, arAdmin } from './lib.js?v=0.6.0';
+import { visaExport } from './export.js?v=0.6.0';
 
-const flikar = [['', 'Översikt'], ['gora', 'Att göra'], ['namn', 'Koppla namn'], ['spelare', 'Spelarregister'], ['cuper', 'Cuper'], ['serien', 'Serien'], ['logg', 'Ändringslogg']];
+const flikar = [['', 'Översikt'], ['gora', 'Att göra'], ['namn', 'Koppla namn'], ['spelare', 'Spelarregister'], ['cuper', 'Cuper'], ['serien', 'Serien'], ['logg', 'Ändringslogg'], ['export', 'Export']];
 const meny = (aktiv) => `<div class="filter" role="navigation" aria-label="Admin">${flikar.map(([k, n]) =>
   `<a class="chip${k === aktiv ? ' vald' : ''}" href="#/admin${k ? `/${k}` : ''}">${n}</a>`).join('')}</div>`;
 const spNamn = (s) => (s ? (s.visningsnamn && s.visningsnamn !== s.namn ? `${s.namn} (${s.visningsnamn})` : s.namn) : '–');
@@ -19,6 +20,7 @@ export async function visaAdmin(app, del, arg) {
   if (del === 'cuper') return visaCupLista(app);
   if (del === 'gora') return visaAttGora(app);
   if (del === 'serien') return visaSerieAdmin(app);
+  if (del === 'export') return visaExport(app, meny('export'));
   if (del === 'logg') return visaLogg(app);
   return visaOversikt(app);
 }

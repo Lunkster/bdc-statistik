@@ -1,5 +1,5 @@
 // Matchsida: resultat, statistik per spelare och varje leg runda för runda
-import { api, esc, fmt, spelarlank } from './lib.js?v=0.5.2';
+import { api, esc, fmt, spelarlank } from './lib.js?v=0.6.0';
 
 export async function visaMatch(app, mid) {
   const q = encodeURIComponent(mid);
