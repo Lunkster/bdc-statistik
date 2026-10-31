@@ -167,6 +167,22 @@ a.resultat:hover { text-decoration: none; background: var(--rosa); color: #fff; 
 .runda.hog { background: var(--rosa); color: #fff; }
 .runda.ut { background: var(--mint); color: var(--bg); font-weight: 800; }
 
+/* admin */
+.varning { color: #f4b860; }
+.formrad { display: flex; flex-wrap: wrap; gap: .5rem; align-items: center; margin: .5rem 0; }
+input, select { font: inherit; padding: .45rem .55rem; border-radius: 8px; border: 1px solid var(--linje); background: var(--bg); color: var(--text); }
+.btn.liten { padding: .35rem .7rem; font-size: .88rem; }
+.btn.sekundar { background: var(--yta2); border: 1px solid var(--linje); }
+.atgard { display: flex; gap: .4rem; align-items: center; }
+.atgard select { max-width: 13rem; }
+.register input { width: 8.5rem; padding: .3rem .45rem; }
+.register input.kort-falt { width: 6rem; }
+.register input[type=checkbox] { width: auto; }
+.register select { max-width: 10rem; }
+.kandidater { margin: .3rem 0 0; padding-left: 1.2rem; }
+details summary { cursor: pointer; color: var(--mint); margin-top: .4rem; }
+.svar { min-height: 1.2em; color: var(--mint); }
+
 @media (max-width: 560px) {
   h1 { font-size: 1.4rem; }
   .brand span { display: none; }

@@ -17,6 +17,7 @@ const server = http.createServer((req, res) => {
 const jwt = (roll) => 'x.' + Buffer.from(JSON.stringify({ app_metadata: { roll } })).toString('base64url') + '.y';
 let roll = 'admin';
 const fel = [];
+const skrivningar = [];
 const browser = await chromium.launch();
 const ctx = await browser.newContext({ locale: 'en-US', timezoneId: 'America/New_York', viewport: { width: 390, height: 844 } });
 const page = await ctx.newPage();
@@ -48,10 +49,14 @@ await page.route('https://xkfjbrkrtetkbjugresq.supabase.co/**', async (route) =>
     if (q.get('spelare_id') === 'eq.47') return svara(F.spelare_match);
     return svara([]);
   }
+  if (route.request().method() !== 'GET') { skrivningar.push(`${route.request().method()} ${tabell}${u.search} ${route.request().postData() ?? ''}`);
+    return svara(tabell === 'spelare' ? [{ id: 99 }] : []); }
+  if (tabell === 'v_namn_underlag') return svara(F.underlag);
+  if (tabell === 'alias_logg') return svara(F.alias_logg);
   if (tabell === 'leg') return svara(F.leg);
   if (tabell === 'kast') return svara(F.kast);
   if (tabell === 'spelare') return svara(F.spelare);
-  if (tabell === 'alias') return svara(F.alias);
+  if (tabell === 'alias') return svara(q.get('n01_namn') ? [] : F.alias);
   if (tabell === 'hamtning') return svara(F.hamtning);
   if (tabell === 'v_deltagare') return svara([{ namn: 'Ada' }, { namn: 'Ada' }, { namn: 'Bo' }]);
   return svara([], 404);
@@ -124,6 +129,25 @@ if (!(await page.locator('#adminlank').isVisible())) fel.push('admin ser inte ad
 await page.goto(B + '#/admin'); await page.waitForSelector('#hamta');
 await page.click('#hamta'); await page.waitForSelector('#hamtsvar:text("Klart")');
 await kontroll('6-admin');
+// 5b. Admin: koppla namn, register, logg
+await page.goto(B + '#/admin/namn/Ada'); await page.waitForSelector('#allman');
+await page.selectOption('#allman', '90'); await page.click('#spara-allman');
+await page.waitForSelector('.svar:text("Sparat.")');
+if (!skrivningar.some((s) => s.startsWith('POST alias') && s.includes('"spelare_id":90') && s.includes('"tdid":null'))) fel.push('allmän koppling skrevs inte: ' + skrivningar.join(' | '));
+await page.locator('tr[data-tdid="t_M2Vv_6390"] .valj-har').selectOption('91');
+await page.click('tr[data-tdid="t_M2Vv_6390"] .spara-har'); await page.waitForTimeout(300);
+if (!skrivningar.some((s) => s.includes('"tdid":"t_M2Vv_6390"') && s.includes('"spelare_id":91'))) fel.push('koppling per turnering skrevs inte');
+await kontroll('6b-admin-namn');
+await page.goto(B + '#/admin/spelare'); await page.waitForSelector('.register');
+await page.fill('tr[data-id="47"] [name=efternamn]', 'Dagsson'); await page.fill('tr[data-id="47"] [name=medlemsnummer]', '1234');
+await page.click('tr[data-id="47"] .spara'); await page.waitForTimeout(300);
+if (!skrivningar.some((s) => s.startsWith('PATCH spelare?id=eq.47') && s.includes('Dagsson') && s.includes('1234'))) fel.push('register sparades inte');
+page.once('dialog', (d) => d.accept());
+await page.locator('tr[data-id="91"] .ihop').selectOption('90'); await page.click('tr[data-id="91"] .sla-ihop'); await page.waitForTimeout(300);
+if (!skrivningar.some((s) => s.startsWith('POST sla_ihop_spelare') && s.includes('"fran":91') && s.includes('"till":90'))) fel.push('slå ihop anropades inte');
+await kontroll('6c-register');
+await page.goto(B + '#/admin/logg'); await page.waitForSelector('table');
+await page.goto(B + '#/admin/namn'); await page.waitForSelector('table');
 // 6. Skrivbord
 await page.setViewportSize({ width: 1280, height: 900 });
 await page.goto(B + '#/turnering/t_nRTA_1280'); await page.waitForSelector('#stat table');

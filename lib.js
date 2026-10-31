@@ -16,6 +16,20 @@ export async function api(path) {
   return r.json();
 }
 
+// ---------- skriva (admin; behörigheten avgörs av RLS i databasen) ----------
+export async function skriv(method, path, body) {
+  const s = await session(true);
+  const r = await fetch(`${SUPABASE_URL}/rest/v1/${path}`, {
+    method,
+    headers: { apikey: SUPABASE_KEY, Authorization: `Bearer ${s.access_token}`, 'Content-Type': 'application/json', Prefer: 'return=representation' },
+    body: body === undefined ? undefined : JSON.stringify(body),
+  });
+  if (!r.ok) throw await fel(r);
+  const t = await r.text();
+  return t ? JSON.parse(t) : null;
+}
+export const rpc = (namn, args) => skriv('POST', `rpc/${namn}`, args ?? {});
+
 // ---------- Edge Function ----------
 export async function funktion(namn, body) {
   const s = await session(true);

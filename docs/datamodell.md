@@ -105,6 +105,8 @@ erDiagram
 - **Bästa leg och pilar per leg** räknar bara legs vunna med pilar; n01 räknar även legs avgjorda med middle for diddle (+1 pil). 100+/140+/170+/180 och högsta utgång stämmer exakt med n01 (kontrollerat 2026-10-31, 967 av 967).
 - **Handikapp:** en sida kan starta på annan poäng än matchens `startpoang` (t.ex. 401 mot 301) – första raden i n01:s `playerData` visar startpoängen.
 - **Hämtning:** Edge Function `hamta` (`supabase/functions/hamta`) – se `03_hamtning_schema.sql` för schemat (pg_cron tor och sön 23:00 svensk tid) och nyckeln i Vault.
+- **Spelare:** `fornamn` + `efternamn`; `namn` sätts av en trigger när någon av dem finns. `medlemsnummer` unikt, tomt = null.
+- **Ändringslogg:** `alias_logg` fylls av en trigger vid varje ny, flyttad eller borttagen koppling, och av `sla_ihop_spelare(fran, till)` (bara admin) som flyttar alla kopplingar och tar bort den ena spelaren.
 - **Behörighet:** roll i `app_metadata.roll`. `medlem` och `admin` läser allt; bara `admin` skriver `spelare` och `alias`. Anonyma har ingen åtkomst.
 
 ## Vyer
@@ -114,6 +116,7 @@ erDiagram
 | `v_turnering_statistik` | n01:s statistik per spelare och turnering ur `stats_list`: placering, matcher, legs, snitt, first 9, 100+/140+/170+/180, high out, bästa/sämsta leg |
 | `v_turnering` | Turneringslistan: serie, omgång, antal deltagare och matcher, vinnare, länk till n01 |
 | `v_match` | En rad per match med båda sidorna: legs, snitt, kopplad spelare || `v_spelare_match` | En rad per match och spelare: motståndare, legs, snitt, first 9, pilar per vunnet leg, bästa leg, högsta runda och utgång, 100+/140+/170+/180 – spelarsidans grafer, rekord och matchsidan |
+| `v_namn_underlag` | Ett n01-namn per turnering: datum, serie, snitt, placering, koppling per turnering och allmänt – adminsidans underlag för att koppla namn |
 | `intern.match_kast` | Materialiserad vy (schemat `intern`, inte i API:et): rundorna summerade per match och sida. Räknas om av `public.uppdatera_statistik()` när hämtningen fått nya matcher |
 
 Vyerna har `security_invoker = true` (följer tabellernas RLS) och är skrivskyddade.
