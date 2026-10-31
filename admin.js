@@ -1,5 +1,5 @@
 // Admin: hämtning, koppla namn (allmänt eller per turnering), spelarregister, slå ihop, ändringslogg
-import { api, skriv, rpc, funktion, esc, fmt, datumTid, arAdmin } from './lib.js?v=0.4.1';
+import { api, skriv, rpc, funktion, esc, fmt, datumTid, arAdmin } from './lib.js?v=0.4.2';
 
 const flikar = [['', 'Översikt'], ['gora', 'Att göra'], ['namn', 'Koppla namn'], ['spelare', 'Spelarregister'], ['cuper', 'Cuper'], ['logg', 'Ändringslogg']];
 const meny = (aktiv) => `<div class="filter" role="navigation" aria-label="Admin">${flikar.map(([k, n]) =>
@@ -188,7 +188,7 @@ async function visaRegister(app) {
   const namnPa = (id) => [...new Set(alias.filter((a) => a.spelare_id === id).map((a) => a.n01_namn + (a.tdid ? '*' : '')))];
   app.innerHTML = `
     <h1>Spelarregister</h1>${meny('spelare')}
-    <p class="muted">${spelare.length} spelare. Ändra och tryck Spara på raden. Fullständigt namn = förnamn + efternamn. * = kopplat bara i vissa turneringar.</p>
+    <p class="muted">${spelare.length} spelare. Ändra och tryck Spara på raden. Fullständigt namn = förnamn + efternamn. * = kopplat bara i vissa turneringar. Inaktiva spelare utan kopplade namn kan tas bort.</p>
     <details class="kort"><summary>Ny spelare</summary>
       <div class="formrad"><input id="ny-fornamn" placeholder="Förnamn"><input id="ny-efternamn" placeholder="Efternamn"><input id="ny-nr" placeholder="Medlemsnummer">
         <button class="btn" id="skapa" type="button">Skapa</button></div></details>
@@ -202,7 +202,7 @@ async function visaRegister(app) {
         <td><input name="medlemsnummer" value="${esc(s.medlemsnummer ?? '')}" aria-label="Medlemsnummer" class="kort-falt"></td>
         <td><input type="checkbox" name="aktiv"${s.aktiv ? ' checked' : ''} aria-label="Aktiv"></td>
         <td class="liten">${namnPa(s.id).map((n) => `<a href="#/admin/namn/${encodeURIComponent(n.replace('*', ''))}">${esc(n)}</a>`).join(', ')}</td>
-        <td><button class="btn liten spara" type="button">Spara</button> <a href="#/spelare/${s.id}" class="liten">Visa</a></td>
+        <td><button class="btn liten spara" type="button">Spara</button> <a href="#/spelare/${s.id}" class="liten">Visa</a>${!s.aktiv && !namnPa(s.id).length ? ' <button class="btn liten sekundar ta-bort" type="button">Ta bort</button>' : ''}</td>
         <td><select class="ihop" aria-label="Slå ihop med">${val(spelare.filter((x) => x.id !== s.id), null, '–')}</select>
           <button class="btn liten sekundar sla-ihop" type="button">Slå ihop</button></td>
       </tr>`).join('')}</tbody></table></div>`;
@@ -220,6 +220,11 @@ async function visaRegister(app) {
       fornamn: f('fornamn').value, efternamn: f('efternamn').value, visningsnamn: f('visningsnamn').value.trim() || null,
       medlemsnummer: f('medlemsnummer').value, aktiv: f('aktiv').checked,
     }), 'Sparat.');
+  }));
+  app.querySelectorAll('.ta-bort').forEach((b) => b.addEventListener('click', () => {
+    const sid = Number(b.closest('tr').dataset.id), n = spelare.find((s) => s.id === sid)?.namn;
+    if (!window.confirm(`Ta bort ${n}? Spelaren är inaktiv och har inga kopplade n01-namn, så inga resultat försvinner.`)) return;
+    kor(() => rpc('ta_bort_spelare', { sid }), `${n} är borttagen.`);
   }));
   app.querySelectorAll('.sla-ihop').forEach((b) => b.addEventListener('click', () => {
     const tr = b.closest('tr'), fran = Number(tr.dataset.id), till = Number(tr.querySelector('.ihop').value);
