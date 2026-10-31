@@ -1,0 +1,27 @@
+{
+"lista":[{"tdid":"t_nRTA_1280","titel":"Bankeryd Dart Club Torsdagscup omg 6 29/10","datum":"2026-10-29","serie":"Torsdagscup","omgang":6,"deltagare":15,"matcher":35,"vinnare":"Ada","vinnare_id":null},
+{"tdid":"t_M2Vv_6390","titel":"Bankeryd Dart Club Söndagscup omg 5 25/10","datum":"2026-10-25","serie":"Söndagscup","omgang":5,"deltagare":18,"matcher":35,"vinnare":"Hed","vinnare_id":60},
+{"tdid":"t_1SYi_2379","titel":"Bankeryd Bad Magic Cup V.8 26/4","datum":"2026-04-26","serie":"Bad Magic Cup","omgang":8,"deltagare":12,"matcher":29,"vinnare":"Dag","vinnare_id":47},
+{"tdid":"t_GH8D_8735","titel":"Bankeryd Dart Club","datum":"2026-01-15","serie":null,"omgang":null,"deltagare":14,"matcher":39,"vinnare":"Ivar Ivarsson","vinnare_id":56}],
+"turn":[{"tdid":"t_nRTA_1280","titel":"Bankeryd Dart Club Torsdagscup omg 6 29/10","datum":"2026-10-29","serie":"Torsdagscup","omgang":6,"startpoang":501,"deltagare":15,"matcher":35,"vinnare":"Ada","vinnare_id":null,"n01_url":"https://n01darts.com/n01/tournament/comp.php?id=t_nRTA_1280"}],
+"rad":[{"rr_table":[["Xtdt","ubk3","Bzhd","pdwo"],["nIyn","Zh53","d6qR",""]],
+"rr_result":[{"Bzhd":{"Xtdt":{"a":41.4,"r":1},"pdwo":{"a":39.68,"r":0},"ubk3":{"a":40.12,"r":0}},"Xtdt":{"Bzhd":{"a":43.81,"r":2},"pdwo":{"a":36,"r":2},"ubk3":{"a":46.42,"r":1}},"pdwo":{"Bzhd":{"a":42.87,"r":2},"Xtdt":{"a":38.27,"r":0},"ubk3":{"a":42.59,"r":0}},"ubk3":{"Bzhd":{"a":55.67,"r":2},"Xtdt":{"a":58.44,"r":2},"pdwo":{"a":56.72,"r":2}}},
+{"Zh53":{"d6qR":{"a":41.49,"r":3},"nIyn":{"a":49,"r":2}},"d6qR":{"Zh53":{"a":37.48,"r":1},"nIyn":{"a":44.76,"r":0}},"nIyn":{"Zh53":{"a":49.38,"r":3},"d6qR":{"a":48.48,"r":3}}}],
+"rr_title":null,"t_title":["",""]}],
+"stat":[
+{"tdid":"t_nRTA_1280","tpid":"nIyn","namn":"Ada","spelare_id":null,"placering":1,"matcher":6,"vunna_matcher":6,"legs":17,"vunna_legs":14,"poang":8435,"pilar":486,"snitt":52.07,"snitt_f9":67.92,"t100":14,"t140":4,"t170":0,"t180":0,"high_out":68,"basta_leg":20,"samsta_leg":38},
+{"tdid":"t_nRTA_1280","tpid":"ubk3","namn":"Bo","spelare_id":null,"placering":2,"matcher":7,"vunna_matcher":6,"legs":18,"vunna_legs":13,"poang":8954,"pilar":523,"snitt":51.36,"snitt_f9":59.22,"t100":8,"t140":0,"t170":1,"t180":0,"high_out":52,"basta_leg":20,"samsta_leg":40},
+{"tdid":"t_nRTA_1280","tpid":"Zh53","namn":"Cid","spelare_id":50,"placering":3,"matcher":5,"vunna_matcher":3,"legs":17,"vunna_legs":10,"poang":8274,"pilar":540,"snitt":45.97,"snitt_f9":53.88,"t100":17,"t140":1,"t170":0,"t180":2,"high_out":60,"basta_leg":25,"samsta_leg":40},
+{"tdid":"t_nRTA_1280","tpid":"Xtdt","namn":"Dag","spelare_id":47,"placering":9,"matcher":4,"vunna_matcher":2,"legs":11,"vunna_legs":6,"poang":4959,"pilar":341,"snitt":43.63,"snitt_f9":46.39,"t100":5,"t140":1,"t170":0,"t180":0,"high_out":46,"basta_leg":29,"samsta_leg":40},
+{"tdid":"t_nRTA_1280","tpid":"pdwo","namn":"Eje","spelare_id":61,"placering":5,"matcher":5,"vunna_matcher":2,"legs":10,"vunna_legs":4,"poang":4248,"pilar":289,"snitt":44.10,"snitt_f9":49.77,"t100":5,"t140":0,"t170":0,"t180":0,"high_out":76,"basta_leg":19,"samsta_leg":40},
+{"tdid":"t_nRTA_1280","tpid":"Bzhd","namn":"Fia","spelare_id":71,"placering":9,"matcher":4,"vunna_matcher":0,"legs":9,"vunna_legs":1,"poang":3670,"pilar":274,"snitt":40.18,"snitt_f9":37.74,"t100":2,"t140":0,"t170":0,"t180":0,"high_out":28,"basta_leg":28,"samsta_leg":28},
+{"tdid":"t_nRTA_1280","tpid":"d6qR","namn":"Gun","spelare_id":75,"placering":5,"matcher":4,"vunna_matcher":1,"legs":13,"vunna_legs":4,"poang":5945,"pilar":437,"snitt":40.81,"snitt_f9":41.21,"t100":4,"t140":0,"t170":0,"t180":0,"high_out":32,"basta_leg":32,"samsta_leg":40}],
+"match":[
+{"mid":"a1","tdid":"t_nRTA_1280","ttype":"rr","rond":2,"t_no":0,"legs_for_vinst":2,"klar":true,"tpid_a":"Xtdt","namn_a":"Dag","spelare_a":47,"legs_a":1,"snitt_a":46.42,"tpid_b":"ubk3","namn_b":"Bo","spelare_b":null,"legs_b":2,"snitt_b":58.44},
+{"mid":"a2","tdid":"t_nRTA_1280","ttype":"t","rond":1,"t_no":2,"legs_for_vinst":2,"klar":true,"tpid_a":"nIyn","namn_a":"Ada","spelare_a":null,"legs_a":2,"snitt_a":60.12,"tpid_b":"pdwo","namn_b":"Eje","spelare_b":61,"legs_b":0,"snitt_b":33.81},
+{"mid":"a3","tdid":"t_nRTA_1280","ttype":"t","rond":2,"t_no":2,"legs_for_vinst":2,"klar":true,"tpid_a":"Zh53","namn_a":"Cid","spelare_a":50,"legs_a":1,"snitt_a":44.52,"tpid_b":"ubk3","namn_b":"Bo","spelare_b":null,"legs_b":2,"snitt_b":46.53},
+{"mid":"a4","tdid":"t_nRTA_1280","ttype":"t","rond":3,"t_no":1,"legs_for_vinst":2,"klar":true,"tpid_a":"nIyn","namn_a":"Ada","spelare_a":null,"legs_a":2,"snitt_a":47.51,"tpid_b":"ubk3","namn_b":"Bo","spelare_b":null,"legs_b":1,"snitt_b":49.25}],
+"spelare":[{"id":47,"namn":"Dag","visningsnamn":"Dag","medlemsnummer":null,"aktiv":true,"kommentar":null,"skapad":"2026-10-31T15:00:00Z"}],
+"alias":[{"n01_namn":"Dag","tdid":null},{"n01_namn":"Dag 1","tdid":null}],
+"hamtning":[{"id":5,"start":"2026-10-31T14:58:00Z","slut":"2026-10-31T14:59:30Z","kalla":"manuell","status":"klar","nya_turneringar":6,"nya_matcher":174,"meddelande":"allt hämtat"}]
+}

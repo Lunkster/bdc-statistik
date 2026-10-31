@@ -8,4 +8,7 @@
 - Schemaändringar: ny numrerad fil i `supabase/` + `apply_migration` (namn `bdc_NN_...`). Kör `get_advisors` efteråt. Uppdatera `docs/datamodell.md` och kopian i Obsidian.
 - Lagra aldrig härledda värden – lägg logiken i vyerna. Rådata från n01 sparas i `data` (jsonb).
 - Format enligt SI: ÅÅÅÅ-MM-DD, 24 h, decimalkomma, `toLocaleString("sv-SE")`.
-- Inga personuppgifter, exporter eller nycklar (utom publishable key) i repot.
+- Inga personuppgifter, exporter eller nycklar (utom publishable key) i repot – testdatan i `tests/` har påhittade namn.
+- Versionsnummer i `index.html` (`?v=`), i importerna och i `#version` ändras vid varje release.
+- Testa med `tests/test.mjs` (attrapp, amerikanska inställningar för att fånga fel format) före commit.
+- Repot: GitHub `Lunkster/bdc-statistik` (publikt, Pages från `main` / rot) – Henrik pushar själv.

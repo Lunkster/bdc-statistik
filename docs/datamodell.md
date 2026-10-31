@@ -110,3 +110,8 @@ erDiagram
 | Vy | Innehåll |
 | --- | --- |
 | `v_deltagare` | Deltagare med kopplad `spelare_id` (turneringsspecifikt alias före allmänt) |
+| `v_turnering_statistik` | n01:s statistik per spelare och turnering ur `stats_list`: placering, matcher, legs, snitt, first 9, 100+/140+/170+/180, high out, bästa/sämsta leg |
+| `v_turnering` | Turneringslistan: serie, omgång, antal deltagare och matcher, vinnare, länk till n01 |
+| `v_match` | En rad per match med båda sidorna: legs, snitt, kopplad spelare |
+
+Vyerna har `security_invoker = true` (följer tabellernas RLS) och är skrivskyddade.

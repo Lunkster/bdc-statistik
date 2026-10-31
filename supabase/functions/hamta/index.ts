@@ -171,6 +171,11 @@ Deno.serve(async (req) => {
     if (data?.user?.app_metadata?.roll !== "admin") return svar({ fel: "bara admin får starta hämtning" }, 403);
   }
 
+  // Spärr: kör inte om en hämtning startade för mindre än 3 minuter sedan och inte är klar
+  const { data: pagar } = await db.from("hamtning").select("id").eq("status", "pågår")
+    .gte("start", new Date(Date.now() - 180_000).toISOString()).limit(1);
+  if (pagar?.length) return svar({ ok: false, fel: "en hämtning pågår redan – vänta ett par minuter" }, 409);
+
   const { data: logg } = await db.from("hamtning").insert({ kalla }).select("id").single();
   const rakna = { turneringar: 0, matcher: 0 };
   let klart = true;
