@@ -1,6 +1,6 @@
 // Egna SVG-diagram utan bibliotek: punkter över tid + glidande snitt, tooltip vid hover/fokus/tryck.
 // Format enligt SI oberoende av webbläsarens språk.
-import { fmt } from './lib.js?v=0.2.0';
+import { fmt } from './lib.js?v=0.2.1';
 
 const B = 640, H = 300, M = { v: 62, h: 14, o: 18, n: 40 };   // vänster, höger, över, nedre marginal
 
@@ -44,7 +44,10 @@ export function tidsdiagram(punkter, val = {}) {
   const d0 = new Date(x0); d0.setUTCDate(1); d0.setUTCHours(0, 0, 0, 0);
   for (let t = new Date(d0); t.getTime() <= x1; t.setUTCMonth(t.getUTCMonth() + 1)) if (t.getTime() >= x0) manader.push(t.getTime());
   const varannan = manader.length > 7 ? 2 : 1;
-  const trend = glidande(p, val.glid ?? Math.min(5, Math.max(2, Math.round(p.length / 8))));
+  const nKort = val.glid ?? Math.min(5, Math.max(2, Math.round(p.length / 8)));
+  const nLang = Math.min(nKort * 10, p.length);           // långsam trend: tio gånger fler punkter
+  const trend = glidande(p, nKort);
+  const trendLang = p.length >= nKort * 3 ? glidande(p, nLang) : null;
 
   const grid = yt.map((v) => `<line x1="${M.v}" x2="${B - M.h}" y1="${sy(v)}" y2="${sy(v)}" class="grid"/>
     <text x="${M.v - 10}" y="${sy(v) + 7}" class="axel" text-anchor="end">${fmt(v, Number.isInteger(v) ? 0 : d)}</text>`).join('');
@@ -52,7 +55,8 @@ export function tidsdiagram(punkter, val = {}) {
     const dt = new Date(t);
     return `<text x="${sx(t)}" y="${H - 10}" class="axel" text-anchor="middle">${dt.getUTCFullYear()}-${String(dt.getUTCMonth() + 1).padStart(2, '0')}</text>`;
   }).join('');
-  const linje = trend.map((q, i) => `${i ? 'L' : 'M'}${sx(q.x).toFixed(1)},${sy(q.y).toFixed(1)}`).join(' ');
+  const bana = (t) => t.map((q, i) => `${i ? 'L' : 'M'}${sx(q.x).toFixed(1)},${sy(q.y).toFixed(1)}`).join(' ');
+  const linje = bana(trend);
   const prickar = p.map((q, i) => `<a href="${q.lank ?? '#'}" class="punkt" data-i="${i}" tabindex="0" aria-label="${fmt(q.y, d)}${enhet}, ${q.datum}">
       <circle cx="${sx(q.x)}" cy="${sy(q.y)}" r="8" class="prick"/></a>`).join('');
 
@@ -61,9 +65,9 @@ export function tidsdiagram(punkter, val = {}) {
   setTimeout(() => koppla(id, p, d, enhet), 0);
   return `<div class="diagram" id="${id}">
     <svg viewBox="0 0 ${B} ${H}" role="img" aria-label="Diagram över tid">${grid}${xax}
-      <path d="${linje}" class="trend"/>${prickar}</svg>
+      ${trendLang ? `<path d="${bana(trendLang)}" class="trend lang"/>` : ''}<path d="${linje}" class="trend"/>${prickar}</svg>
     <div class="tooltip" hidden><b></b><span></span><small></small></div>
-    <div class="forklaring"><span class="nyckel prick-nyckel"></span>${val.punktnamn ?? 'per match'}<span class="nyckel linje-nyckel"></span>trend (glidande snitt)${val.lagreArBattre ? ' · lägre är bättre' : ''}</div>
+    <div class="forklaring"><span class="nyckel prick-nyckel"></span>${val.punktnamn ?? 'per match'}<span class="nyckel linje-nyckel"></span>snitt senaste ${nKort}${trendLang ? `<span class="nyckel linje-nyckel lang"></span>snitt senaste ${nLang}` : ''}${val.lagreArBattre ? ' · lägre är bättre' : ''}</div>
   </div>`;
 }
 

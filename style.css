@@ -147,6 +147,8 @@ main { width: 100%; max-width: 1000px; margin: 0 auto; padding: .8rem 1rem 2rem;
 .nyckel { display: inline-block; }
 .prick-nyckel { width: 9px; height: 9px; border-radius: 50%; background: var(--rosa); opacity: .55; }
 .linje-nyckel { width: 16px; height: 3px; border-radius: 2px; background: var(--rosa); margin-left: .6rem; }
+.diagram .trend.lang { stroke: var(--text); stroke-width: 2; stroke-dasharray: 6 4; opacity: .75; }
+.linje-nyckel.lang { background: repeating-linear-gradient(90deg, var(--text) 0 5px, transparent 5px 8px); opacity: .75; }
 
 /* matchsida */
 a.resultat { color: var(--mint); }
