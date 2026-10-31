@@ -1,6 +1,6 @@
 // Spelarsida (kopplad person eller okopplat n01-namn) med grafer och rekord, samt spelarlista
-import { api, esc, fmt, heltal, spelarlank } from './lib.js?v=0.5.0';
-import { tidsdiagram } from './diagram.js?v=0.5.0';
+import { api, esc, fmt, heltal, spelarlank } from './lib.js?v=0.5.1';
+import { tidsdiagram } from './diagram.js?v=0.5.1';
 
 let vyLage = 'turnering';   // 'turnering' | 'match' – minns mellan spelare
 
@@ -163,7 +163,29 @@ async function rita(app, rubrik, turnRader, matcher, under, extra = '') {
         <td>${r.placering ? `${r.placering}/${r.t.deltagare ?? ''}` : '–'}</td>
         <td>${r.vunna_matcher}–${r.matcher}</td><td>${fmt(r.snitt, 2)}</td><td>${fmt(r.snitt_f9, 2)}</td>
         <td>${r.t180 || ''}</td><td>${r.high_out ?? ''}</td></tr>`).join('')}</tbody>
-    </table></div>${extra}`;
+    </table></div>
+    <h2>Matcher</h2>
+    <p class="muted liten">Alla matcher, senaste först. Tryck på resultatet för att se varje leg runda för runda.</p>
+    <div class="rulla" id="matchlista"></div>${extra}`;
+
+  // Alla matcher med länk till matchsidan (de senaste 15, resten bakom en knapp)
+  const allaMatcher = [...matcher].sort((a, b) => ms(b.datum, b.starttid) - ms(a.datum, a.starttid));
+  let visaAlla = false;
+  const ritaMatcher = () => {
+    const lista = visaAlla ? allaMatcher : allaMatcher.slice(0, 15);
+    document.getElementById('matchlista').innerHTML = allaMatcher.length ? `<table class="tabell matchtabell">
+      <thead><tr><th class="fast">Datum</th><th>Resultat</th><th>Mot</th><th>Snitt</th><th>F9</th><th>HO</th><th>Turnering</th></tr></thead>
+      <tbody>${lista.map((m) => `<tr>
+        <td class="fast">${esc(m.datum ?? '')}</td>
+        <td><a href="${mlank(m)}" class="resultat ${m.vann ? 'vann' : 'forlorade'}" title="Visa matchen">${m.legs_vunna}–${m.legs_forlorade}</a></td>
+        <td class="vanster">${spelarlank(m.mot_namn ?? '?', m.mot_spelare_id)}</td>
+        <td>${fmt(m.snitt, 2)}</td><td>${fmt(m.snitt_f9, 2)}</td><td>${m.hogsta_utgang ?? ''}</td>
+        <td class="vanster"><a href="${tlank(m)}">${esc(tnamn(m.tdid))}</a> <small class="muted">${ttypNamn(m)}</small></td></tr>`).join('')}</tbody>
+    </table>${allaMatcher.length > 15 ? `<p><button type="button" class="btn liten sekundar" id="alla-matcher">${visaAlla ? 'Visa färre' : `Visa alla ${allaMatcher.length} matcher`}</button></p>` : ''}`
+      : '<p class="muted">Inga matcher.</p>';
+    document.getElementById('alla-matcher')?.addEventListener('click', () => { visaAlla = !visaAlla; ritaMatcher(); });
+  };
+  ritaMatcher();
 
   const ritaGrafer = () => {
     app.querySelectorAll('[data-lage]').forEach((b) => b.classList.toggle('vald', b.dataset.lage === vyLage));

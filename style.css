@@ -246,3 +246,12 @@ a.lagmatch:hover { text-decoration: none; border-color: var(--rosa); }
   .lagmatch { grid-template-columns: 1fr auto 1fr; }
   .lagmatch > span:first-child { grid-column: 1 / -1; }
 }
+
+/* Matcher på spelarsidan och i grupperna (v0.5.1) */
+.matchtabell a.resultat { font-weight: 700; padding: .1rem .45rem; border-radius: 6px; background: var(--yta2); }
+.matchtabell a.resultat.vann { color: var(--mint); }
+.matchtabell a.resultat.forlorade { color: var(--dampad); }
+.gruppmatcher { margin-top: .5rem; }
+.gruppmatcher summary { cursor: pointer; color: var(--mint); font-size: .9rem; }
+.gruppmatcher .match { margin-top: .35rem; }
+.matchtabell td.vanster { text-align: left; }

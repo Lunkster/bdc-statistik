@@ -1,5 +1,5 @@
 // Turneringssida: samma statistik som n01:s statistiksida, grupper och slutspel
-import { api, esc, fmt, heltal, spelarlank } from './lib.js?v=0.5.0';
+import { api, esc, fmt, heltal, spelarlank } from './lib.js?v=0.5.1';
 
 const KOLUMNER = [
   // nyckel, rubrik, förklaring, sortering (1 = högst först, -1 = lägst först), format
@@ -101,9 +101,12 @@ function grupper(rad, perTpid, matcher) {
       return { tp, v, f, lv, lf, spelade: v + f, egna };
     }).sort((a, b) => b.v - a.v || (b.lv - b.lf) - (a.lv - a.lf) || b.lv - a.lv);
     const titel = rad?.rr_title?.[gi] || `Grupp ${String.fromCharCode(65 + gi)}`;
+    const iGruppen = new Set(grupp);
+    const gruppMatcher = matcher.filter((m) => m.ttype === 'rr' && iGruppen.has(m.tpid_a) && iGruppen.has(m.tpid_b));
     return `<div class="kort grupp"><h3>${esc(titel)}</h3>
       <table class="tabell liten"><thead><tr><th>Spelare</th><th title="Vunna matcher">V</th><th title="Förlorade matcher">F</th><th title="Legs vunna–förlorade">Legs</th><th title="Legsskillnad">+/-</th></tr></thead>
-      <tbody>${rader.map((r) => `<tr><td>${spelarlank(namn(r.tp), perTpid[r.tp]?.spelare_id)}</td><td>${r.v}</td><td>${r.f}</td><td>${r.lv}–${r.lf}</td><td>${r.lv - r.lf > 0 ? '+' : ''}${r.lv - r.lf}</td></tr>`).join('')}</tbody></table></div>`;
+      <tbody>${rader.map((r) => `<tr><td>${spelarlank(namn(r.tp), perTpid[r.tp]?.spelare_id)}</td><td>${r.v}</td><td>${r.f}</td><td>${r.lv}–${r.lf}</td><td>${r.lv - r.lf > 0 ? '+' : ''}${r.lv - r.lf}</td></tr>`).join('')}</tbody></table>
+      ${gruppMatcher.length ? `<details class="gruppmatcher"><summary>Matcherna i gruppen (${gruppMatcher.length})</summary>${gruppMatcher.map(matchrad).join('')}</details>` : ''}</div>`;
   }).join('');
   return `<h2>Gruppspel</h2><div class="grupper">${html}</div>`;
 }
