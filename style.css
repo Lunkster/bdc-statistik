@@ -121,6 +121,50 @@ main { width: 100%; max-width: 1000px; margin: 0 auto; padding: .8rem 1rem 2rem;
 .nyckeltal .kort { display: flex; flex-direction: column; gap: .1rem; padding: .6rem .8rem; }
 .nyckeltal b { font-size: 1.35rem; color: var(--rosa); }
 
+/* spelarsida: rekord och grafer */
+.rekord { display: grid; gap: .7rem; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); }
+.rekordkort { display: flex; flex-direction: column; gap: .1rem; color: var(--text); }
+.rekordkort:hover { border-color: var(--rosa); text-decoration: none; }
+.rekordkort b { font-size: 1.35rem; color: var(--rosa); }
+.rekordkort small { color: var(--dampad); }
+.grafer { display: grid; gap: .7rem; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); margin-top: .4rem; }
+.graf { padding: .7rem .7rem .5rem; }
+.diagram { position: relative; }
+.diagram svg { width: 100%; height: auto; display: block; overflow: visible; }
+.diagram .grid { stroke: var(--linje); stroke-width: 1; vector-effect: non-scaling-stroke; }
+.diagram .axel { fill: var(--dampad); font-size: 22px; font-variant-numeric: tabular-nums; }
+.diagram .trend { fill: none; stroke: var(--rosa); stroke-width: 2.5; stroke-linejoin: round; stroke-linecap: round; vector-effect: non-scaling-stroke; }
+.diagram .prick { fill: var(--rosa); fill-opacity: .5; stroke: var(--yta); stroke-width: 2; vector-effect: non-scaling-stroke; }
+.diagram svg { cursor: pointer; touch-action: pan-y; }
+.diagram .punkt { cursor: pointer; outline: none; }
+.diagram .punkt.aktiv .prick, .diagram .punkt:focus-visible .prick { fill-opacity: 1; r: 12; }
+.diagram .tooltip { position: absolute; z-index: 5; pointer-events: none; background: var(--yta2); border: 1px solid var(--linje);
+  border-radius: 8px; padding: .35rem .55rem; font-size: .85rem; max-width: 240px; box-shadow: 0 4px 14px rgba(0,0,0,.4); }
+.diagram .tooltip b { color: var(--text); font-size: 1rem; }
+.diagram .tooltip span { color: var(--dampad); }
+.diagram .tooltip small { display: block; color: var(--dampad); }
+.forklaring { font-size: .78rem; color: var(--dampad); display: flex; align-items: center; gap: .35rem; flex-wrap: wrap; margin-top: .2rem; }
+.nyckel { display: inline-block; }
+.prick-nyckel { width: 9px; height: 9px; border-radius: 50%; background: var(--rosa); opacity: .55; }
+.linje-nyckel { width: 16px; height: 3px; border-radius: 2px; background: var(--rosa); margin-left: .6rem; }
+
+/* matchsida */
+a.resultat { color: var(--mint); }
+a.resultat:hover { text-decoration: none; background: var(--rosa); color: #fff; }
+.matchhuvud { display: grid; grid-template-columns: 1fr auto 1fr; gap: .8rem; align-items: center; font-size: 1.15rem; margin: .6rem 0 .8rem; }
+.matchhuvud > span:last-child { text-align: right; }
+.matchhuvud .vinst { font-weight: 800; }
+.resultat.stor { font-size: 1.4rem; padding: .2rem .8rem; }
+.jamfor td, .jamfor th { text-align: center !important; }
+.jamfor td:first-child, .jamfor td:last-child { font-weight: 700; }
+.leg { margin-bottom: .6rem; padding: .6rem .8rem; }
+.leg h3 { margin-bottom: .3rem; }
+.legsida { display: grid; grid-template-columns: 5.5rem 1fr auto; gap: .5rem; align-items: center; padding: .2rem 0; }
+.rundor { display: flex; flex-wrap: wrap; gap: .25rem; }
+.runda { min-width: 2.1rem; text-align: center; background: var(--yta2); border-radius: 5px; padding: .05rem .3rem; font-size: .88rem; }
+.runda.hog { background: var(--rosa); color: #fff; }
+.runda.ut { background: var(--mint); color: var(--bg); font-weight: 800; }
+
 @media (max-width: 560px) {
   h1 { font-size: 1.4rem; }
   .brand span { display: none; }

@@ -42,6 +42,14 @@ await page.route('https://xkfjbrkrtetkbjugresq.supabase.co/**', async (route) =>
     return svara(F.stat);
   }
   if (tabell === 'v_match') return svara(F.match);
+  if (tabell === 'v_spelare_match') {
+    if (q.get('mid')) { const m = F.spelare_match.find((x) => `eq.${x.mid}` === q.get('mid'));
+      return svara(m ? [m, { ...m, sida: 1, namn: m.mot_namn, spelare_id: null, mot_namn: m.namn, legs_vunna: m.legs_forlorade, legs_forlorade: m.legs_vunna, vann: !m.vann }] : []); }
+    if (q.get('spelare_id') === 'eq.47') return svara(F.spelare_match);
+    return svara([]);
+  }
+  if (tabell === 'leg') return svara(F.leg);
+  if (tabell === 'kast') return svara(F.kast);
   if (tabell === 'spelare') return svara(F.spelare);
   if (tabell === 'alias') return svara(F.alias);
   if (tabell === 'hamtning') return svara(F.hamtning);
@@ -90,6 +98,18 @@ if (!(await page.locator('body').innerText()).includes('43,63')) fel.push('decim
 await page.click('a[href="#/spelare/47"] >> nth=0');
 await page.waitForSelector('.nyckeltal');
 await kontroll('3-spelare');
+if ((await page.locator('.graf:has-text("För få värden")').count()) !== 6) fel.push('per turnering med en turnering ska visa för få värden');
+await page.click('[data-lage="match"]');
+const punkter = await page.locator('.graf >> nth=0 >> .punkt').count(); if (punkter !== 21) fel.push('punkter per match: ' + punkter);
+await page.locator('.graf >> nth=0 >> svg').hover({ position: { x: 150, y: 60 } });
+if (await page.locator('.graf >> nth=0 >> .tooltip').isHidden()) fel.push('tooltip visas inte');
+await kontroll('3b-spelare-per-match');
+const rekord = await page.locator('.rekordkort').count(); if (rekord < 6) fel.push('rekord: ' + rekord);
+await page.click('.rekordkort:has-text("Högsta utgång")');
+await page.waitForSelector('.leg');
+if ((await page.locator('.leg').count()) !== 3) fel.push('legs på matchsidan');
+if ((await page.locator('.runda.ut').count()) !== 6) fel.push('utgångar på matchsidan');
+await kontroll('3c-match');
 await page.goto(B + '#/namn/Ada');
 await page.waitForSelector('.nyckeltal');
 await kontroll('4-namn');

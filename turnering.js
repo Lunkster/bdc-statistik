@@ -1,5 +1,5 @@
 // Turneringssida: samma statistik som n01:s statistiksida, grupper och slutspel
-import { api, esc, fmt, heltal, spelarlank } from './lib.js?v=0.1.1';
+import { api, esc, fmt, heltal, spelarlank } from './lib.js?v=0.2.0';
 
 const KOLUMNER = [
   // nyckel, rubrik, förklaring, sortering (1 = högst först, -1 = lägst först), format
@@ -135,7 +135,7 @@ function matchrad(m) {
   const vinnA = m.legs_a > m.legs_b, vinnB = m.legs_b > m.legs_a;
   return `<div class="match">
     <span class="${vinnA ? 'vinst' : ''}">${spelarlank(m.namn_a, m.spelare_a)} <small class="muted">${fmt(m.snitt_a, 1)}</small></span>
-    <b class="resultat">${m.legs_a ?? 0}–${m.legs_b ?? 0}</b>
+    <a class="resultat" href="#/match/${encodeURIComponent(m.mid)}" title="Visa matchen">${m.legs_a ?? 0}–${m.legs_b ?? 0}</a>
     <span class="${vinnB ? 'vinst' : ''}">${m.namn_b ? spelarlank(m.namn_b, m.spelare_b) : '–'} <small class="muted">${fmt(m.snitt_b, 1)}</small></span>
   </div>`;
 }

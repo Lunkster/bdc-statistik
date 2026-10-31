@@ -192,6 +192,8 @@ Deno.serve(async (req) => {
       if (!hel) { klart = false; break; }
       rakna.turneringar++;
     }
+    // Förberäknad statistik per match räknas om när något nytt har kommit
+    if (rakna.matcher > 0) await ok(await db.rpc("uppdatera_statistik"), "uppdatera_statistik");
     const kvar = att.length - rakna.turneringar;
     const meddelande = klart ? "allt hämtat" : `tidsgräns – ${kvar} turneringar kvar, kör igen`;
     await db.from("hamtning").update({
