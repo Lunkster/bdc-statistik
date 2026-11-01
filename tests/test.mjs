@@ -88,6 +88,7 @@ await page.route('https://xkfjbrkrtetkbjugresq.supabase.co/**', async (route) =>
   if (tabell === 'alias_logg') return svara(F.alias_logg);
   if (tabell === 'leg') return svara(F.leg);
   if (tabell === 'kast') return svara(F.kast);
+  if (tabell === 'turnering_statistik') return svara(F.n01stat);
   if (tabell === 'spelare' && q.get('bild')) return svara([{ id: 47, bild: '47.jpg?v=1' }]);
   if (tabell === 'spelare') return svara(F.spelare);
   if (tabell === 'alias') return svara(q.get('n01_namn') ? [] : F.alias);
@@ -163,6 +164,12 @@ const g1 = await page.locator('.grupp >> nth=0 >> tbody tr >> nth=0').innerText(
 if (!g1.startsWith('Bo')) fel.push('gruppetta grupp A: ' + g1);
 await page.click('.gruppmatcher summary >> nth=0');
 if ((await page.locator('.gruppmatcher >> nth=0 >> a.resultat').count()) < 1) fel.push('grupp: matcherna saknas');
+if (await page.locator('#stat th:has-text("Keep")').isVisible()) fel.push('statistik: Keep ska vara dold i mobilen före Detaljer');
+await page.click('.stat-detaljer');
+if (!(await page.locator('#stat th:has-text("Keep")').isVisible())) fel.push('statistik: Detaljer visar inte Keep');
+const adaRad = await page.locator('#stat tbody tr:has-text("Ada")').innerText();
+if (!adaRad.includes('88,9 %') || !adaRad.includes('75,0 %') || !/\bF\b/.test(adaRad)) fel.push('statistik: Keep/Break/Omg för Ada: ' + adaRad.replace(/\s+/g, ' '));
+await kontroll('2a-statistik-detaljer');
 await page.click('.tidslinje summary');
 if ((await page.locator('.tl-rad').count()) !== 4) fel.push('tidslinje: ska visa 4 matcher');
 const tl1 = await page.locator('.tl-huvud >> nth=0').innerText();

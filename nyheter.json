@@ -2,6 +2,7 @@
  {
   "datum": "2026-11-01",
   "punkter": [
+   "Tävlingens statistiktabell har fått fler kolumner som hos n01: vinst-% i matcher och legs, legsskillnad, sämsta leg, snitt per pil, 100+ utgångar, Keep och Break, Second och Break legs, totala poäng och pilar, grupp och hur långt man nådde. På dator syns allt direkt; i mobilen trycker du på Detaljer (v0.9.5)",
    "På tävlingssidan finns nu Matcher i tidsordning längst ner: alla kvällens matcher med klockslag, grupp eller slutspelsrond, resultat och snitt – senaste eller första först (v0.9.4)",
    "Matchsidan visar nu varje leg som n01:s protokoll: uppifrån och ned med poäng och kvar för båda spelarna, pilarna räknade i mitten, ring runt 100+ och hur många pilar utgången tog. Statistiken står bredvid (under i mobilen) – tryck på Detaljer för 60+, 80+, 120+, 170+ och fler siffror. Gäller även matcherna i distriktsserien (v0.9.3)",
    "Nya namn: en kväll i n01 heter nu tävling (fliken Tävlingar), och flera tävlingar med gemensam poängtabell är en cup. Menyn har ordningen Tävlingar, Cuper, Serien, Spelare, Rekord. Rekordsidan visar de tre bästa i varje gren – tryck Visa topp 10 för fler (v0.9.0)",

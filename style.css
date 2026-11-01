@@ -354,3 +354,10 @@ body.tv main { max-width: none; }
 .tl-rad:first-child { border-top: 0; }
 .tl-huvud { font-size: .8rem; color: var(--dampad); margin-bottom: .15rem; }
 .tl-huvud b { color: var(--mint); font-variant-numeric: tabular-nums; }
+
+/* Tävlingsstatistik: fler kolumner (v0.9.5) – på dator alla, i mobilen bakom Detaljer */
+.stat-detaljer { margin-bottom: .5rem; }
+.stat-detaljer small { color: var(--dampad); font-weight: 400; margin-left: .3rem; }
+.statbox.oppen .stat-detaljer .pil { transform: rotate(180deg); }
+@media (max-width: 899px) { .statbox:not(.oppen) .bara-d { display: none; } }
+@media (min-width: 900px) { .stat-detaljer { display: none; } }

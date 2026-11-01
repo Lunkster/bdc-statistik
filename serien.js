@@ -1,7 +1,7 @@
 // Distriktsserien (v0.5): serietabeller för hela divisionerna, lagmatcher och Bankeryds spelare.
 // Delmatcher (singlar/dubblar) med legs finns bara för Bankeryds lag (beslut Henrik 2026-10-31).
-import { api, esc, fmt, spelarlank } from './lib.js?v=0.9.4';
-import { rakna, statistikHtml, legsHtml, protokollSida, koppla } from './protokoll.js?v=0.9.4';
+import { api, esc, fmt, spelarlank } from './lib.js?v=0.9.5';
+import { rakna, statistikHtml, legsHtml, protokollSida, koppla } from './protokoll.js?v=0.9.5';
 
 const lagNamn = (namn, bankeryd) => (bankeryd ? `<b class="bankeryd">${esc(namn)}</b>` : esc(namn));
 const resultat = (a, b) => (a == null || b == null ? '–' : `${a}–${b}`);

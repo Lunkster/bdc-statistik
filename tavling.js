@@ -1,8 +1,10 @@
 // Tävlingssida: samma statistik som n01:s statistiksida, grupper, slutspel och matcherna i tidsordning
-import { api, esc, fmt, heltal, spelarlank, datumTid } from './lib.js?v=0.9.4';
+import { api, esc, fmt, heltal, spelarlank, datumTid } from './lib.js?v=0.9.5';
 
+const pct = (v) => (v == null ? '–' : `${fmt(v, 1)} %`);
+const OMG = { '-1': 'F', '-2': 'SF', '-3': 'KF', '-4': 'ÅF' };
 const KOLUMNER = [
-  // nyckel, rubrik, förklaring, sortering (1 = högst först, -1 = lägst först), format
+  // nyckel, rubrik, förklaring, sortering (1 = högst först, -1 = lägst först), format, 'd' = bara under Detaljer i mobilen
   ['placering', 'Plac', 'Placering', -1, (v) => v ?? '–'],
   ['matcher_vs', 'Matcher', 'Vunna – spelade matcher', 1, null],
   ['legs_vs', 'Legs', 'Vunna – spelade legs', 1, null],
@@ -14,7 +16,41 @@ const KOLUMNER = [
   ['t180', '180', 'Rundor på 180', 1, heltal],
   ['high_out', 'HO', 'Högsta utgång', 1, (v) => v ?? '–'],
   ['basta_leg', 'Bästa', 'Bästa leg (antal pilar)', -1, (v) => v ?? '–'],
+  // Detaljer (v0.9.5) – som n01:s stora statistiktabell
+  ['vinst_m', 'Vinst-% M', 'Andel vunna matcher', 1, pct, 'd'],
+  ['vinst_l', 'Vinst-% L', 'Andel vunna legs', 1, pct, 'd'],
+  ['legs_diff', '+/-', 'Legsskillnad (vunna – förlorade)', 1, (v) => (v > 0 ? `+${v}` : v ?? '–'), 'd'],
+  ['samsta_leg', 'Sämsta', 'Sämsta vunna leg (antal pilar)', -1, (v) => v ?? '–', 'd'],
+  ['snitt1', '1 pil', 'Snitt per pil', 1, (v) => fmt(v, 2), 'd'],
+  ['ut100', '100+ ut', 'Utgångar på 100 eller mer', 1, heltal, 'd'],
+  ['keep', 'Keep', 'Andel vunna legs där spelaren började', 1, pct, 'd'],
+  ['brk', 'Break', 'Andel vunna legs där motståndaren började', 1, pct, 'd'],
+  ['second', 'Second', 'Legs där motståndaren började', 1, heltal, 'd'],
+  ['breaklegs', 'Breaks', 'Vunna legs där motståndaren började', 1, heltal, 'd'],
+  ['poang', 'Poäng', 'Totalt kastade poäng', 1, heltal, 'd'],
+  ['pilar', 'Pilar', 'Totalt antal pilar', 1, heltal, 'd'],
+  ['grupp', 'Grupp', 'Grupp i gruppspelet', -1, (v) => v ?? '–', 'd'],
+  ['omg', 'Omg', 'Hur långt spelaren nådde: omgångsnummer, KF/SF/F = kvarts-, semi-, final', 1, null, 'd'],
 ];
+
+const statOppen = () => { try { return localStorage.getItem('bdc-statdetaljer') === '1'; } catch { return false; } };
+
+// Fält ur n01:s stats_list (per tpid) som vyn inte har
+function berika(s, n) {
+  const kvot = (a, b) => (b ? (100 * a) / b : null);
+  s.vinst_m = kvot(s.vunna_matcher, s.matcher);
+  s.vinst_l = kvot(s.vunna_legs, s.legs);
+  s.legs_diff = s.legs != null ? 2 * s.vunna_legs - s.legs : null;
+  s.snitt1 = s.snitt != null ? s.snitt / 3 : null;
+  if (!n) return;
+  s.ut100 = n.highOutCount ?? null;
+  s.second = n.a_b ?? null; s.breaklegs = n.w_b ?? null;
+  s.brk = kvot(n.w_b, n.a_b);
+  s.keep = kvot((n.winLeg ?? 0) - (n.w_b ?? 0), (n.leg ?? 0) - (n.a_b ?? 0));
+  s.grupp = n.r_g || null;
+  s.omg = n.rnd ? (n.rnd > 0 ? n.rnd : 100 + n.rnd) : null;          // sorteringsvärde: F = 99, SF = 98 …
+  s.omg_text = n.rnd ? (n.rnd > 0 ? String(n.rnd) : OMG[n.rnd] ?? String(n.rnd)) : '–';
+}
 
 export async function visaTavling(app, tdid) {
   const q = encodeURIComponent(tdid);
@@ -24,6 +60,7 @@ export async function visaTavling(app, tdid) {
     api(`v_turnering_statistik?tdid=eq.${q}&select=*`),
     api(`v_match?tdid=eq.${q}&select=*&order=ttype,rond,t_no`),
   ]);
+  const [n01stat] = await api(`turnering_statistik?tdid=eq.${q}&typ=eq.stats_list&select=data`).catch(() => []);
   // Cuper som tävlingen ingår i (omgång eller finalspel)
   const iCup = await api(`v_tavling_turnering?tdid=eq.${q}&select=tavling_id,roll`).catch(() => []);
   const cuper = iCup.length ? await api(`tavling?id=in.(${iCup.map((c) => c.tavling_id).join(',')})&select=id,namn`) : [];
@@ -31,6 +68,7 @@ export async function visaTavling(app, tdid) {
     return cup ? `<a class="chip cuplank" href="#/cup/${cup.id}">🏆 ${esc(cup.namn)}${c.roll === 'final' ? ' – finalspel' : ''} →</a>` : ''; }).join('');
   if (!t) { app.innerHTML = '<p class="fel">Tävlingen finns inte.</p>'; return; }
 
+  stat.forEach((s) => berika(s, n01stat?.data?.[s.tpid]));
   const perTpid = Object.fromEntries(stat.map((s) => [s.tpid, s]));
   let sortering = { nyckel: 'placering', riktning: -1 };
 
@@ -44,11 +82,11 @@ export async function visaTavling(app, tdid) {
     });
     document.getElementById('stat').innerHTML = `
       <table class="tabell">
-        <thead><tr><th class="fast">Spelare</th>${KOLUMNER.map(([n, r, f]) =>
-          `<th><button type="button" data-sort="${n}" title="${esc(f)}" class="${n === sortering.nyckel ? 'sorterad' : ''}">${esc(r)}</button></th>`).join('')}</tr></thead>
+        <thead><tr><th class="fast">Spelare</th>${KOLUMNER.map(([n, r, f, , , d]) =>
+          `<th${d ? ' class="bara-d"' : ''}><button type="button" data-sort="${n}" title="${esc(f)}" class="${n === sortering.nyckel ? 'sorterad' : ''}">${esc(r)}</button></th>`).join('')}</tr></thead>
         <tbody>${rader.map((s) => `<tr>
           <td class="fast">${spelarlank(s.namn ?? s.tpid, s.spelare_id)}</td>
-          ${KOLUMNER.map(([n, , , , f]) => `<td>${n === 'matcher_vs' ? `${s.vunna_matcher}–${s.matcher}` : n === 'legs_vs' ? `${s.vunna_legs}–${s.legs}` : f(s[n])}</td>`).join('')}
+          ${KOLUMNER.map(([n, , , , f, d]) => `<td${d ? ' class="bara-d"' : ''}>${n === 'matcher_vs' ? `${s.vunna_matcher}–${s.matcher}` : n === 'legs_vs' ? `${s.vunna_legs}–${s.legs}` : n === 'omg' ? esc(s.omg_text) : f(s[n])}</td>`).join('')}
         </tr>`).join('')}</tbody>
       </table>`;
   };
@@ -74,7 +112,10 @@ export async function visaTavling(app, tdid) {
     </div>
     <h2>Statistik</h2>
     <p class="muted liten">Samma siffror som n01:s statistiksida. Tryck på en rubrik för att sortera.</p>
-    <div class="rulla" id="stat"></div>
+    <div class="statbox${statOppen() ? ' oppen' : ''}">
+      <button type="button" class="detaljer-knapp stat-detaljer" aria-expanded="${statOppen()}">Detaljer <span class="pil">▾</span> <small>Vinst-%, Keep/Break, poäng och pilar m.m.</small></button>
+      <div class="rulla" id="stat"></div>
+    </div>
     ${grupper(rad, perTpid, matcher)}
     ${slutspel(matcher, rad?.t_title)}
     ${tidslinje(matcher, rad)}`;
@@ -84,6 +125,11 @@ export async function visaTavling(app, tdid) {
     const kol = KOLUMNER.find((k) => k[0] === b.dataset.sort);
     sortering = sortering.nyckel === kol[0] ? { nyckel: kol[0], riktning: -sortering.riktning } : { nyckel: kol[0], riktning: kol[3] };
     ritaTabell();
+  });
+  app.querySelector('.stat-detaljer').addEventListener('click', (e) => {
+    const ar = e.currentTarget.closest('.statbox').classList.toggle('oppen');
+    e.currentTarget.setAttribute('aria-expanded', ar);
+    try { localStorage.setItem('bdc-statdetaljer', ar ? '1' : '0'); } catch { /* ok */ }
   });
   ritaTabell();
   kopplaTidslinje(app);
