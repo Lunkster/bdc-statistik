@@ -57,7 +57,8 @@ await page.route('https://xkfjbrkrtetkbjugresq.supabase.co/**', async (route) =>
   if (tabell === 'ds_alias') return svara([]);
   if (tabell === 'v_ds_tabell') return svara(F.ds_tabell.filter((r) => `eq.${r.tdid}` === q.get('tdid') || (q.get('tdid') ?? '').includes(`"${r.tdid}"`)));
   if (tabell === 'v_rekord_leg') return svara(q.get('utgang') ? [{ mid: 'm00', tdid: 't_nRTA_1280', datum: '2026-10-29', namn: 'Dag', spelare_id: 47, mot_namn: 'Bo', utgang: 121 }]
-    : [{ mid: 'm00', tdid: 't_nRTA_1280', datum: '2026-10-29', namn: 'Dag', spelare_id: 47, mot_namn: 'Bo', pilar: 15, snitt: 100.2 }, { mid: 'm01', tdid: 't_nRTA_1280', datum: '2026-10-29', namn: 'Bo', spelare_id: null, mot_namn: 'Dag', pilar: 17, snitt: 88.41 }]);
+    : [{ mid: 'm00', tdid: 't_nRTA_1280', datum: '2026-10-29', namn: 'Dag', spelare_id: 47, mot_namn: 'Bo', pilar: 15, snitt: 100.2 }, { mid: 'm01', tdid: 't_nRTA_1280', datum: '2026-10-29', namn: 'Bo', spelare_id: null, mot_namn: 'Dag', pilar: 17, snitt: 88.41 },
+      ...[18, 19, 20].map((p) => ({ mid: 'm02', tdid: 't_nRTA_1280', datum: '2026-10-29', namn: 'Cid', spelare_id: 50, mot_namn: 'Bo', pilar: p, snitt: Math.round(150300 / p) / 100 }))]);
   if (tabell === 'v_ds_lagmatch') return svara(F.ds_lagmatch.filter((r) => `eq.${r.tdid}` === q.get('tdid') && (!q.get('nyckel') || `eq.${r.nyckel}` === q.get('nyckel'))));
   if (tabell === 'v_ds_spelare') {
     if (q.get('spelare_id') === 'is.null') return svara(F.ds_spelare.filter((r) => !r.spelare_id));
@@ -125,7 +126,15 @@ await page.click('.chip[data-serie=""]');
 // 2b. Rekord och helskärmskarusell
 await page.click('a[data-route="rekord"]'); await page.waitForSelector('.rekordlista');
 if ((await page.locator('.rekordlista').count()) !== 7) fel.push('rekord: antal listor ' + await page.locator('.rekordlista').count());
+await page.evaluate(() => {});
+const nav = await page.locator('.tabs a').allInnerTexts();
+if (nav.slice(0, 5).join(',') !== 'Tävlingar,Cuper,Serien,Spelare,Rekord') fel.push('menyns ordning: ' + nav.join(','));
 if (!(await page.locator('.rekordlista >> nth=0').innerText()).includes('15 pilar')) fel.push('rekord: bästa leg');
+if ((await page.locator('.rekordlista >> nth=0 >> li:visible').count()) !== 3) fel.push('rekord: ska visa tre');
+await page.click('.rekordlista >> nth=0 >> .fler');
+if ((await page.locator('.rekordlista >> nth=0 >> li:visible').count()) !== 5) fel.push('rekord: expanderar inte');
+await page.click('.rekordlista >> nth=0 >> .fler');
+if ((await page.locator('.rekordlista >> nth=0 >> li:visible').count()) !== 3) fel.push('rekord: fäller inte ihop');
 if (!(await page.locator('.rekordsida').innerText()).includes('100,20')) fel.push('rekord: decimalkomma');
 await kontroll('2b-rekord');
 await page.goto(B + '#/karusell'); await page.waitForSelector('.karusell.helskarm');

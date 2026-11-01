@@ -1,5 +1,5 @@
 // Cuper: lista och poängtabell per cup med klubbens poängregler
-import { api, esc, spelarlank } from './lib.js?v=0.8.1';
+import { api, esc, spelarlank } from './lib.js?v=0.9.0';
 
 const KOL = [
   // nyckel, rubrik, förklaring, regel som avgör om kolumnen visas
@@ -82,7 +82,7 @@ export async function visaCup(app, id) {
     <p class="muted liten">Tryck på en rubrik för att sortera. Bull-utgång går inte att läsa ur n01 och matas in av admin.</p>
     <h2>Omgångar</h2>
     <div class="rulla"><table class="tabell">
-      <thead><tr><th class="fast">Datum</th><th>Turnering</th><th>Del</th></tr></thead>
+      <thead><tr><th class="fast">Datum</th><th>Tävling</th><th>Del</th></tr></thead>
       <tbody>${turn.map((t) => `<tr><td class="fast">${esc(t.datum ?? '')}</td>
         <td><a href="#/turnering/${encodeURIComponent(t.tdid)}">${esc(t.serie ?? t.titel)}${t.omgang ? ` ${t.omgang}` : ''}</a></td>
         <td>${t.roll === 'final' ? 'Finalspel' : 'Omgång'}</td></tr>`).join('')}</tbody></table></div>`;

@@ -1,6 +1,6 @@
 // Turneringslistan: alla turneringar, nyast först, filter på serie
-import { api, esc } from './lib.js?v=0.8.1';
-import { visaKarusell } from './karusell.js?v=0.8.1';
+import { api, esc } from './lib.js?v=0.9.0';
+import { visaKarusell } from './karusell.js?v=0.9.0';
 
 let valdSerie = '';
 
@@ -24,13 +24,13 @@ export async function visaTurneringar(app) {
           <span class="vinnare">${r.vinnare ? `🏆 ${esc(r.vinnare)}` : ''}</span>
         </a>`;
     }).join('');
-    document.getElementById('lista').innerHTML = html || '<p class="muted">Inga turneringar.</p>';
+    document.getElementById('lista').innerHTML = html || '<p class="muted">Inga tävlingar.</p>';
   };
 
   app.innerHTML = `
     <div id="karusell"></div>
-    <h1>Turneringar</h1>
-    <p class="muted">${rader.length} turneringar sedan ${esc(rader.at(-1)?.datum ?? '')} – hämtas från n01 varje torsdag och söndag kl. 23:00.</p>
+    <h1>Tävlingar</h1>
+    <p class="muted">${rader.length} tävlingar sedan ${esc(rader.at(-1)?.datum ?? '')} – hämtas från n01 varje torsdag och söndag kl. 23:00.</p>
     <div class="filter" role="group" aria-label="Serie">
       <button type="button" data-serie="" class="chip">Alla</button>
       ${serier.map((s) => `<button type="button" data-serie="${esc(s)}" class="chip">${esc(s)}</button>`).join('')}

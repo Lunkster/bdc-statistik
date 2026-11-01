@@ -1,6 +1,6 @@
-// Klubbrekord på 501 (v0.8.1, önskemål Henrik 2026-11-01): bästa leg, högsta utgång, 180:or,
+// Klubbrekord på 501 (v0.9.0, önskemål Henrik 2026-11-01): bästa leg, högsta utgång, 180:or,
 // högsta snitt i en match och i en turnering. Bara klubbens turneringar och legs som startade på 501.
-import { api, esc, fmt, spelarlank } from './lib.js?v=0.8.1';
+import { api, esc, fmt, spelarlank } from './lib.js?v=0.9.0';
 
 const N = 10;
 const mlank = (mid) => `#/match/${encodeURIComponent(mid)}`;
@@ -45,11 +45,11 @@ export function rekordKort(R) {
       (r) => `<b>${r.utgang}</b>`, (r) => `<a href="${mlank(r.mid)}">mot ${esc(r.mot_namn ?? '?')}</a>, ${i(r)}`],
     ['Högsta snitt i en match', '3-pilssnitt i en match', R.match,
       (r) => `<b>${fmt(r.snitt, 2)}</b>`, (r) => `<a href="${mlank(r.mid)}">${r.legs_vunna}–${r.legs_forlorade} mot ${esc(r.mot_namn ?? '?')}</a>, ${i(r)}`],
-    ['Högsta snitt i en turnering', '3-pilssnitt, minst 3 matcher', R.turnSnitt,
+    ['Högsta snitt i en tävling', '3-pilssnitt, minst 3 matcher', R.turnSnitt,
       (r) => `<b>${fmt(r.snitt, 2)}</b>`, (r) => `<a href="${tlank(r.tdid)}">${i(r)}</a> · ${r.matcher} matcher`],
     ['Flest 180:or totalt', 'Alla 501-turneringar', R.t180tot,
-      (r) => `<b>${r.t180}</b>`, (r) => `${r.turneringar} turneringar`],
-    ['Flest 180:or i en turnering', '', R.t180turn,
+      (r) => `<b>${r.t180}</b>`, (r) => `${r.turneringar} tävlingar`],
+    ['Flest 180:or i en tävling', '', R.t180turn,
       (r) => `<b>${r.t180}</b>`, (r) => `<a href="${tlank(r.tdid)}">${i(r)}</a>`],
     ['Flest 180:or i en match', '', R.match180,
       (r) => `<b>${r.t180}</b>`, (r) => `<a href="${mlank(r.mid)}">mot ${esc(r.mot_namn ?? '?')}</a>, ${i(r)}`],
@@ -60,10 +60,16 @@ export async function visaRekord(app) {
   const R = await hamtaRekord();
   app.innerHTML = `
     <h1>Klubbrekord</h1>
-    <p class="muted">Rekorden på 501 i klubbens ${R.antalTurn} turneringar (torsdagarna) – topp ${N} i varje gren. Tryck på en rad för att se matchen eller turneringen.</p>
+    <p class="muted">Rekorden på 501 i klubbens ${R.antalTurn} tävlingar (torsdagarna) – de tre bästa i varje gren, tryck på <i>Visa topp ${N}</i> för fler. Tryck på en rad för att se matchen eller tävlingen.</p>
     <div class="rekordsida">${rekordKort(R).map(([titel, under, rader, varde, info]) => `<div class="kort rekordlista">
       <h2>${titel}</h2>${under ? `<p class="muted liten">${under}</p>` : ''}
-      ${rader.length ? `<ol>${rader.map((r) => `<li><span class="varde">${varde(r)}</span> <span class="vem">${vem(r)}</span><br><small class="muted">${info(r)}</small></li>`).join('')}</ol>` : '<p class="muted">Inga än.</p>'}
+      ${rader.length ? `<ol>${rader.map((r, i) => `<li${i >= 3 ? ' class="extra" hidden' : ''}><span class="varde">${varde(r)}</span> <span class="vem">${vem(r)}</span><br><small class="muted">${info(r)}</small></li>`).join('')}</ol>
+        ${rader.length > 3 ? `<button type="button" class="btn liten sekundar fler">Visa topp ${rader.length}</button>` : ''}` : '<p class="muted">Inga än.</p>'}
     </div>`).join('')}</div>
     <p class="muted liten">Bästa leg räknar bara legs som vunnits med pilar (inte avgjorda med närmast bull). Legsnittet för ett vunnet 501-leg är 3 × 501 / antal pilar, så bästa leg och högsta legsnitt är samma lista. 301 och handikapp ingår inte – se spelarsidan för dem.</p>`;
+  app.querySelectorAll('.rekordlista .fler').forEach((b) => b.addEventListener('click', () => {
+    const kort = b.closest('.rekordlista'), visa = !!kort.querySelector('li.extra')?.hidden;
+    kort.querySelectorAll('li.extra').forEach((li) => { li.hidden = !visa; });
+    b.textContent = visa ? 'Visa topp 3' : `Visa topp ${kort.querySelectorAll('li').length}`;
+  }));
 }

@@ -1,6 +1,6 @@
 // Spelarsida (kopplad person eller okopplat n01-namn) med grafer och rekord, samt spelarlista
-import { api, esc, fmt, heltal, spelarlank, bildUrl, laddaUppBild, taBortBild } from './lib.js?v=0.8.1';
-import { tidsdiagram } from './diagram.js?v=0.8.1';
+import { api, esc, fmt, heltal, spelarlank, bildUrl, laddaUppBild, taBortBild } from './lib.js?v=0.9.0';
+import { tidsdiagram } from './diagram.js?v=0.9.0';
 
 let vyLage = 'turnering';   // 'turnering' | 'match' – minns mellan spelare
 
@@ -36,7 +36,7 @@ export async function visaSpelarlista(app) {
     snitt: s.d ? (3 * s.p) / s.d : null, f9: s.f9d ? (3 * s.f9p) / s.f9d : null, vinst: s.m ? s.mv / s.m : null }));
   const okopplade = lista.filter((s) => !s.id).length;
   const kol = [
-    ['namn', 'Spelare', 1], ['t', 'Turneringar', -1], ['segrar', 'Segrar', -1], ['vinst', 'Vunna matcher', -1],
+    ['namn', 'Spelare', 1], ['t', 'Tävlingar', -1], ['segrar', 'Segrar', -1], ['vinst', 'Vunna matcher', -1],
     ['snitt', 'Snitt', -1], ['f9', 'First 9', -1], ['t180', '180', -1],
   ];
   const rita = () => {
@@ -142,7 +142,7 @@ function dsHtml(rader) {
         <td>${r.singlar_vunna}–${r.singlar}</td><td>${r.dubblar_vunna}–${r.dubblar}</td><td>${r.vunna_legs}–${r.legs}</td>
         <td>${fmt(r.snitt, 2)}</td><td>${fmt(r.snitt_f9, 2)}</td><td>${r.t180 || ''}</td><td>${r.high_out ?? ''}</td><td>${r.basta_leg ?? ''}</td></tr>`).join('')}</tbody>
     </table></div>
-    <p class="muted liten">Ingår inte i statistiken ovan, som gäller klubbens turneringar.</p>`;
+    <p class="muted liten">Ingår inte i statistiken ovan, som gäller klubbens tävlingar.</p>`;
 }
 
 async function rita(app, rubrik, allaTurn, allaMatcher, under, extra = '', huvud = null, efter = null) {
@@ -180,17 +180,17 @@ async function rita(app, rubrik, allaTurn, allaMatcher, under, extra = '', huvud
   const ttext = (r) => `${esc(tnamn(r.tdid))} ${esc(r.t.datum ?? '')}`;
   const rek = [
     ['Bästa snitt i en match', basta(matcher.filter((m) => (m.legs_vunna ?? 0) + (m.legs_forlorade ?? 0) >= 2), 'snitt'), (m) => fmt(m.snitt, 2), mlank, mtext],
-    ['Bästa snitt i en turnering', basta(perT, 'snitt'), (r) => fmt(r.snitt, 2), tlank, ttext],
+    ['Bästa snitt i en tävling', basta(perT, 'snitt'), (r) => fmt(r.snitt, 2), tlank, ttext],
     ['Bästa first 9 i en match', basta(matcher, 'snitt_f9'), (m) => fmt(m.snitt_f9, 2), mlank, mtext],
     ['Bästa leg', basta(matcher, 'basta_leg', true), (m) => `${m.basta_leg} pilar`, mlank, mtext],
     ['Högsta runda', basta(matcher, 'hogsta_runda'), (m) => m.hogsta_runda, mlank, mtext],
     ['Högsta utgång', basta(matcher, 'hogsta_utgang'), (m) => m.hogsta_utgang, mlank, mtext],
-    ['Flest 180:or i en turnering', basta(perT, 't180'), (r) => r.t180, tlank, ttext],
+    ['Flest 180:or i en tävling', basta(perT, 't180'), (r) => r.t180, tlank, ttext],
   ].filter(([, x]) => x);
 
   const vunnaM = matcher.filter((m) => m.vann).length;
   const nyckel = [
-    ['Turneringar', perT.length],
+    ['Tävlingar', perT.length],
     ['Segrar', perT.filter((r) => r.placering === 1).length],
     ['Snitt', fmt(d ? (3 * p) / d : null, 2)],
     ['Matcher', `${vunnaM}–${matcher.length}`],
@@ -210,12 +210,12 @@ async function rita(app, rubrik, allaTurn, allaMatcher, under, extra = '', huvud
       <span class="muted">${n}</span><b>${v(x)}</b><small>${txt(x)}</small></a>`).join('')}</div>
     <h2>Utveckling</h2>
     <div class="filter" role="group" aria-label="Visa per">
-      <button type="button" class="chip" data-lage="turnering">Per turnering</button>
+      <button type="button" class="chip" data-lage="turnering">Per tävling</button>
       <button type="button" class="chip" data-lage="match">Per match</button>
     </div>
     <div id="grafer"></div>
-    <p class="muted liten">Pilar per leg och bästa leg räknar bara legs som vunnits med pilar – inte legs avgjorda med närmast bull (middle for diddle). Peka eller tryck på en punkt för att se värdet; klicka (eller tryck igen) för att öppna matchen eller turneringen.</p>
-    <h2>Turneringar</h2>
+    <p class="muted liten">Pilar per leg och bästa leg räknar bara legs som vunnits med pilar – inte legs avgjorda med närmast bull (middle for diddle). Peka eller tryck på en punkt för att se värdet; klicka (eller tryck igen) för att öppna matchen eller tävlingen.</p>
+    <h2>Tävlingar</h2>
     <div class="rulla" id="turnlista"></div>
     <h2>Matcher</h2>
     <p class="muted liten">Senaste först. Tryck på en rubrik för att sortera, och på resultatet för att se varje leg runda för runda.</p>
@@ -223,7 +223,7 @@ async function rita(app, rubrik, allaTurn, allaMatcher, under, extra = '', huvud
 
   // Turneringarna – sorterbara
   const tKol = [
-    ['datum', 'Datum', -1, (r) => r.t.datum ?? ''], ['turnering', 'Turnering', 1, (r) => tnamn(r.tdid)],
+    ['datum', 'Datum', -1, (r) => r.t.datum ?? ''], ['turnering', 'Tävling', 1, (r) => tnamn(r.tdid)],
     ['plac', 'Plac', 1, (r) => r.placering ?? null], ['matcher', 'Matcher', -1, (r) => (r.matcher ? r.vunna_matcher / r.matcher : null)],
     ['snitt', 'Snitt', -1, (r) => r.snitt], ['f9', 'F9', -1, (r) => r.snitt_f9], ['t180', '180', -1, (r) => r.t180 || null], ['ho', 'HO', -1, (r) => r.high_out],
   ];
@@ -248,7 +248,7 @@ async function rita(app, rubrik, allaTurn, allaMatcher, under, extra = '', huvud
   const mKol = [
     ['datum', 'Datum', -1, (m) => ms(m.datum, m.starttid)], ['resultat', 'Resultat', -1, (m) => (m.vann ? 100 : 0) + (m.legs_vunna ?? 0) - (m.legs_forlorade ?? 0)],
     ['mot', 'Mot', 1, (m) => m.mot_namn ?? ''], ['snitt', 'Snitt', -1, (m) => m.snitt], ['f9', 'F9', -1, (m) => m.snitt_f9],
-    ['ho', 'HO', -1, (m) => m.hogsta_utgang], ['turnering', 'Turnering', 1, (m) => tnamn(m.tdid)],
+    ['ho', 'HO', -1, (m) => m.hogsta_utgang], ['turnering', 'Tävling', 1, (m) => tnamn(m.tdid)],
   ];
   const ritaMatcher = () => {
     const sorterade = sortera(sorteradeMatcher, mKol, sortMatch);
@@ -277,7 +277,7 @@ async function rita(app, rubrik, allaTurn, allaMatcher, under, extra = '', huvud
           text: `${m.vann ? 'Vinst' : 'Förlust'} ${m.legs_vunna}–${m.legs_forlorade} mot ${m.mot_namn ?? '?'} · ${tnamn(m.tdid)}, ${ttypNamn(m)}`, lank: mlank(m) }))
       : perT.map((r) => ({ x: ms(r.t.datum), y: tal(r[k]), datum: r.t.datum ?? '',
           text: `${tnamn(r.tdid)} · plats ${r.placering ?? '–'}`, lank: tlank(r) })));
-    const pn = perMatch ? 'per match' : 'per turnering';
+    const pn = perMatch ? 'per match' : 'per tävling';
     const grafer = [
       ['3-pilssnitt', punkt('snitt'), { decimaler: 2 }],
       ['Snitt första 9 pilarna', punkt('snitt_f9'), { decimaler: 2 }],

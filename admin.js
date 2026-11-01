@@ -1,6 +1,6 @@
 // Admin: hämtning, koppla namn (allmänt eller per turnering), spelarregister, slå ihop, ändringslogg
-import { api, skriv, rpc, funktion, esc, fmt, datumTid, arAdmin } from './lib.js?v=0.8.1';
-import { visaExport } from './export.js?v=0.8.1';
+import { api, skriv, rpc, funktion, esc, fmt, datumTid, arAdmin } from './lib.js?v=0.9.0';
+import { visaExport } from './export.js?v=0.9.0';
 
 const flikar = [['', 'Översikt'], ['gora', 'Att göra'], ['namn', 'Koppla namn'], ['spelare', 'Spelarregister'], ['cuper', 'Cuper'], ['serien', 'Serien'], ['logg', 'Ändringslogg'], ['export', 'Export']];
 const meny = (aktiv) => `<div class="filter" role="navigation" aria-label="Admin">${flikar.map(([k, n]) =>
@@ -40,13 +40,13 @@ async function visaOversikt(app) {
       <div class="kort"><span class="muted">Att göra</span><b><a href="#/admin/gora">${oppnaUppg.length}</a></b></div></div>
     <div class="kort">
       <h2>Hämta från n01</h2>
-      <p class="muted liten">Sker automatiskt torsdag och söndag kl. 23:00. Knappen hämtar nya och ändrade turneringar direkt (tar upp till två minuter).</p>
+      <p class="muted liten">Sker automatiskt torsdag och söndag kl. 23:00. Knappen hämtar nya och ändrade tävlingar direkt (tar upp till två minuter).</p>
       <button class="btn" id="hamta">Hämta nu</button>
       <p id="hamtsvar" role="status"></p>
     </div>
     <h2>Senaste hämtningar</h2>
     <div class="rulla"><table class="tabell">
-      <thead><tr><th class="fast">Start</th><th>Hur</th><th>Status</th><th>Turneringar</th><th>Matcher</th><th>Meddelande</th></tr></thead>
+      <thead><tr><th class="fast">Start</th><th>Hur</th><th>Status</th><th>Tävlingar</th><th>Matcher</th><th>Meddelande</th></tr></thead>
       <tbody>${logg.map((h) => `<tr><td class="fast">${datumTid(h.start)}</td><td>${esc(h.kalla)}</td><td>${esc(h.status)}</td>
         <td>${h.nya_turneringar}</td><td>${h.nya_matcher}</td><td class="liten">${esc(h.meddelande ?? '')}</td></tr>`).join('')}</tbody>
     </table></div>`;
@@ -55,7 +55,7 @@ async function visaOversikt(app) {
     e.target.disabled = true; svar.textContent = 'Hämtar …';
     try {
       const r = await funktion('hamta', { kalla: 'knapp' });
-      svar.textContent = `Klart: ${r.turneringar} nya eller ändrade turneringar, ${r.matcher} matcher.${r.klart ? '' : ` Tidsgränsen nåddes – ${r.kvar} kvar, tryck igen.`}`;
+      svar.textContent = `Klart: ${r.turneringar} nya eller ändrade tävlingar, ${r.matcher} matcher.${r.klart ? '' : ` Tidsgränsen nåddes – ${r.kvar} kvar, tryck igen.`}`;
     } catch (err) { svar.textContent = `Fel: ${err.message}`; } finally { e.target.disabled = false; }
   });
 }
@@ -80,10 +80,10 @@ async function visaNamnlista(app) {
   const okopplade = lista.filter((n) => n.okopplade);
   const rad = (n) => `<tr><td class="fast"><a href="#/admin/namn/${encodeURIComponent(n.namn)}">${esc(n.namn)}</a></td><td>${n.antal}</td>
     <td>${n.okopplade ? `<span class="varning">${n.okopplade} okopplade</span>` : ''}</td>
-    <td>${[...n.personer].map((id) => `<a href="#/spelare/${id}">${esc(sp[id]?.namn ?? id)}</a>`).join(', ')}${perTurn.has(n.namn.trim().toLowerCase()) ? ' <small class="muted">(per turnering)</small>' : ''}</td></tr>`;
+    <td>${[...n.personer].map((id) => `<a href="#/spelare/${id}">${esc(sp[id]?.namn ?? id)}</a>`).join(', ')}${perTurn.has(n.namn.trim().toLowerCase()) ? ' <small class="muted">(per tävling)</small>' : ''}</td></tr>`;
   app.innerHTML = `
     <h1>Koppla namn</h1>${meny('namn')}
-    <p class="muted">Varje namn som stått i n01. Tryck på ett namn för att koppla det till en person – i alla turneringar eller bara i vissa. ${okopplade.length} namn har okopplade deltaganden.</p>
+    <p class="muted">Varje namn som stått i n01. Tryck på ett namn för att koppla det till en person – i alla tävlingar eller bara i vissa. ${okopplade.length} namn har okopplade deltaganden.</p>
     <div class="rulla"><table class="tabell">
       <thead><tr><th class="fast">Namn i n01</th><th>Deltaganden</th><th></th><th>Kopplat till</th></tr></thead>
       <tbody>${lista.map(rad).join('')}</tbody></table></div>`;
@@ -120,7 +120,7 @@ async function visaNamnKoppling(app, namn) {
 
   const kandHtml = kandIds.map((id) => {
     const x = snitt[id];
-    return `<li>${esc(spNamn(sp[id]))} <small class="muted">${x ? `${x.t} turneringar, snitt ${fmt((3 * x.p) / (x.d || 1), 1)}` : 'inga turneringar ännu'}</small></li>`;
+    return `<li>${esc(spNamn(sp[id]))} <small class="muted">${x ? `${x.t} tävlingar, snitt ${fmt((3 * x.p) / (x.d || 1), 1)}` : 'inga tävlingar ännu'}</small></li>`;
   }).join('');
 
   const radHtml = rader.map((r) => {
@@ -133,7 +133,7 @@ async function visaNamnKoppling(app, namn) {
       <td>${fmt(r.snitt, 1)}</td><td>${r.placering ?? '–'}</td>
       <td>${nu ? `${esc(nu.namn)} <small class="muted">${har ? 'bara här' : 'allmänt'}</small>` : '<span class="varning">okopplad</span>'}</td>
       <td class="liten muted">${krock.length ? `Med samma dag: ${krock.map((id) => esc(sp[id]?.namn ?? id)).join(', ')} – kan inte vara ${krock.length > 1 ? 'dem' : 'hen'}` : ''}</td>
-      <td class="atgard"><select class="valj-har" aria-label="Koppla i den här turneringen">${val(spelare, har?.spelare_id, allmant ? '– som allmänt –' : '– ingen –')}</select>
+      <td class="atgard"><select class="valj-har" aria-label="Koppla i den här tävlingen">${val(spelare, har?.spelare_id, allmant ? '– som allmänt –' : '– ingen –')}</select>
         <button class="btn liten spara-har" type="button">Spara</button></td>
     </tr>`;
   }).join('');
@@ -141,10 +141,10 @@ async function visaNamnKoppling(app, namn) {
   app.innerHTML = `
     <p><a href="#/admin/namn" class="tillbaka">← Koppla namn</a></p>
     <h1>${esc(namn)}</h1>${meny('namn')}
-    <p class="muted">${rader.length} deltaganden i n01 under namnet. Koppla allmänt om namnet alltid är samma person; koppla per turnering om det skiljer. En koppling per turnering går före den allmänna.</p>
+    <p class="muted">${rader.length} deltaganden i n01 under namnet. Koppla allmänt om namnet alltid är samma person; koppla per tävling om det skiljer. En koppling per tävling går före den allmänna.</p>
     <div class="kort">
       <h2>Allmän koppling</h2>
-      <p>${allmant ? `Kopplat till <a href="#/spelare/${allmant.spelare_id}">${esc(sp[allmant.spelare_id]?.namn ?? '?')}</a> i alla turneringar.` : 'Inte kopplat allmänt.'}</p>
+      <p>${allmant ? `Kopplat till <a href="#/spelare/${allmant.spelare_id}">${esc(sp[allmant.spelare_id]?.namn ?? '?')}</a> i alla tävlingar.` : 'Inte kopplat allmänt.'}</p>
       <div class="formrad"><select id="allman">${val(spelare, allmant?.spelare_id)}</select>
         <button class="btn" id="spara-allman" type="button">${allmant ? 'Koppla om' : 'Koppla'}</button>
         ${allmant ? '<button class="btn sekundar" id="ta-bort-allman" type="button">Ta bort kopplingen</button>' : ''}</div>
@@ -154,9 +154,9 @@ async function visaNamnKoppling(app, namn) {
       <p class="svar" role="status"></p>
     </div>
     ${kandIds.length ? `<h2>Möjliga personer</h2><ul class="kandidater">${kandHtml}</ul>` : ''}
-    <h2>Per turnering</h2>
+    <h2>Per tävling</h2>
     <div class="rulla"><table class="tabell">
-      <thead><tr><th class="fast">Datum</th><th>Turnering</th><th>Snitt</th><th>Plac</th><th>Kopplat till</th><th>Underlag</th><th>Koppla här</th></tr></thead>
+      <thead><tr><th class="fast">Datum</th><th>Tävling</th><th>Snitt</th><th>Plac</th><th>Kopplat till</th><th>Underlag</th><th>Koppla här</th></tr></thead>
       <tbody>${radHtml}</tbody></table></div>`;
 
   const om = () => visaNamnKoppling(app, namn);
@@ -191,7 +191,7 @@ async function visaRegister(app) {
   const namnPa = (id) => [...new Set(alias.filter((a) => a.spelare_id === id).map((a) => a.n01_namn + (a.tdid ? '*' : '')))];
   app.innerHTML = `
     <h1>Spelarregister</h1>${meny('spelare')}
-    <p class="muted">${spelare.length} spelare. Ändra och tryck Spara på raden. Fullständigt namn = förnamn + efternamn. * = kopplat bara i vissa turneringar. Inaktiva spelare utan kopplade namn kan tas bort.</p>
+    <p class="muted">${spelare.length} spelare. Ändra och tryck Spara på raden. Fullständigt namn = förnamn + efternamn. * = kopplat bara i vissa tävlingar. Inaktiva spelare utan kopplade namn kan tas bort.</p>
     <details class="kort"><summary>Ny spelare</summary>
       <div class="formrad"><input id="ny-fornamn" placeholder="Förnamn"><input id="ny-efternamn" placeholder="Efternamn"><input id="ny-nr" placeholder="Medlemsnummer">
         <button class="btn" id="skapa" type="button">Skapa</button></div></details>
@@ -249,7 +249,7 @@ async function visaLogg(app) {
     <div class="rulla"><table class="tabell">
       <thead><tr><th class="fast">Tid</th><th>Händelse</th><th>Namn i n01</th><th>Gäller</th><th>Från</th><th>Till</th></tr></thead>
       <tbody>${logg.map((l) => `<tr><td class="fast">${datumTid(l.tid)}</td><td>${esc(l.handling)}</td><td>${esc(l.n01_namn ?? '')}</td>
-        <td>${l.tdid ? `<a href="#/turnering/${encodeURIComponent(l.tdid)}">en turnering</a>` : 'alla'}</td><td>${namn(l.fran_spelare)}</td><td>${namn(l.till_spelare)}</td></tr>`).join('')}</tbody>
+        <td>${l.tdid ? `<a href="#/turnering/${encodeURIComponent(l.tdid)}">en tävling</a>` : 'alla'}</td><td>${namn(l.fran_spelare)}</td><td>${namn(l.till_spelare)}</td></tr>`).join('')}</tbody>
     </table></div>`;
 }
 
@@ -265,7 +265,7 @@ async function visaCupLista(app) {
   const cuper = await api('tavling?typ=eq.klubbcup&select=id,namn,serie,fran,till,aktiv&order=fran.desc.nullslast');
   app.innerHTML = `
     <h1>Cuper</h1>${meny('cuper')}
-    <p class="muted">En cup samlar turneringar med samma serie inom ett datumintervall – nya omgångar kommer med automatiskt. Under varje cup: poängregler, final, uteslutna omgångar och bull-utgångar.</p>
+    <p class="muted">En cup samlar tävlingar med samma serie inom ett datumintervall – nya omgångar kommer med automatiskt. Under varje cup: poängregler, final, uteslutna omgångar och bull-utgångar.</p>
     <p><a class="btn" href="#/admin/cuper/ny">Ny cup</a></p>
     <div class="rulla"><table class="tabell">
       <thead><tr><th class="fast">Cup</th><th>Serie</th><th>Period</th><th>Aktiv</th></tr></thead>
@@ -315,13 +315,13 @@ async function visaCupAdmin(app, idText) {
       <p class="svar" role="status"></p>
     </div>
     ${ny ? '' : `
-    <h2>Turneringar</h2>
-    <p class="muted liten">Med automatiskt: serien <b>${esc(c.serie ?? '–')}</b> mellan ${esc(c.fran ?? '…')} och ${esc(c.till ?? '…')}. Ändra rollen för att markera finalspel, utesluta en omgång eller ta med en turnering som inte följer regeln.</p>
+    <h2>Tävlingar</h2>
+    <p class="muted liten">Med automatiskt: serien <b>${esc(c.serie ?? '–')}</b> mellan ${esc(c.fran ?? '…')} och ${esc(c.till ?? '…')}. Ändra rollen för att markera finalspel, utesluta en omgång eller ta med en tävling som inte följer regeln.</p>
     <div class="formrad"><select id="lagg-till">${turneringar.filter((t) => !iCup.has(t.tdid)).map((t) => `<option value="${esc(t.tdid)}">${esc(t.datum ?? '')} ${esc(t.serie ?? t.titel)}${t.omgang ? ` ${t.omgang}` : ''}</option>`).join('')}</select>
       <select id="lagg-roll"><option value="final">som finalspel</option><option value="omgang">som omgång</option></select>
       <button class="btn liten" id="lagg" type="button">Lägg till</button></div>
     <div class="rulla"><table class="tabell">
-      <thead><tr><th class="fast">Datum</th><th>Turnering</th><th>Roll</th></tr></thead>
+      <thead><tr><th class="fast">Datum</th><th>Tävling</th><th>Roll</th></tr></thead>
       <tbody>${visas.map((t) => `<tr data-tdid="${esc(t.tdid)}"><td class="fast">${esc(t.datum ?? '')}</td>
         <td><a href="#/turnering/${encodeURIComponent(t.tdid)}">${esc(t.serie ?? t.titel)}${t.omgang ? ` ${t.omgang}` : ''}</a></td>
         <td><select class="roll">${[['omgang', 'Omgång'], ['final', 'Finalspel'], ['utesluten', 'Utesluten'], ['ingen', '– inte med –']].map(([v, n]) =>
@@ -397,7 +397,7 @@ async function visaAttGora(app) {
   const senaste = hamt[0];
   const kontroller = [
     [okNamn.length, 'administratör', `${okNamn.reduce((s, [, n]) => s + n, 0)} deltaganden med ${okNamn.length} namn är inte kopplade till en person`, okNamn.slice(0, 8).map(([n, a]) => `${n} (${a})`).join(', '), '#/admin/namn'],
-    [utanCup.length, 'tävlingsledare', `${utanCup.length} turneringar hör inte till någon cup`, utanCup.slice(0, 6).map((t) => `${t.datum} ${t.serie ?? t.titel}${t.omgang ? ` ${t.omgang}` : ''}`).join(', '), '#/admin/cuper'],
+    [utanCup.length, 'tävlingsledare', `${utanCup.length} tävlingar hör inte till någon cup`, utanCup.slice(0, 6).map((t) => `${t.datum} ${t.serie ?? t.titel}${t.omgang ? ` ${t.omgang}` : ''}`).join(', '), '#/admin/cuper'],
     [kontrollera.length, 'tävlingsledare', `${kontrollera.length} cuper har regler som ska kontrolleras`, kontrollera.map((c) => c.namn).join(', '), '#/admin/cuper'],
     [utanEfternamn.length, 'administratör', `${utanEfternamn.length} spelare saknar efternamn`, utanEfternamn.slice(0, 10).map((x) => x.namn).join(', '), '#/admin/spelare'],
     [utanNr.length, 'administratör', `${utanNr.length} spelare saknar medlemsnummer`, '', '#/admin/spelare'],

@@ -1,5 +1,5 @@
 // Turneringssida: samma statistik som n01:s statistiksida, grupper och slutspel
-import { api, esc, fmt, heltal, spelarlank } from './lib.js?v=0.8.1';
+import { api, esc, fmt, heltal, spelarlank } from './lib.js?v=0.9.0';
 
 const KOLUMNER = [
   // nyckel, rubrik, förklaring, sortering (1 = högst först, -1 = lägst först), format
@@ -29,7 +29,7 @@ export async function visaTurnering(app, tdid) {
   const cuper = iCup.length ? await api(`tavling?id=in.(${iCup.map((c) => c.tavling_id).join(',')})&select=id,namn`) : [];
   const cupLankar = iCup.map((c) => { const cup = cuper.find((x) => x.id === c.tavling_id);
     return cup ? `<a class="chip cuplank" href="#/cup/${cup.id}">🏆 ${esc(cup.namn)}${c.roll === 'final' ? ' – finalspel' : ''} →</a>` : ''; }).join('');
-  if (!t) { app.innerHTML = '<p class="fel">Turneringen finns inte.</p>'; return; }
+  if (!t) { app.innerHTML = '<p class="fel">Tävlingen finns inte.</p>'; return; }
 
   const perTpid = Object.fromEntries(stat.map((s) => [s.tpid, s]));
   let sortering = { nyckel: 'placering', riktning: -1 };
@@ -61,7 +61,7 @@ export async function visaTurnering(app, tdid) {
     `<li>${spelarlank(s.namn, s.spelare_id)} <b>${varde(s)}</b></li>`).join('')}</ol></div>` : '';
 
   app.innerHTML = `
-    <p><a href="#/" class="tillbaka">← Turneringar</a></p>
+    <p><a href="#/" class="tillbaka">← Tävlingar</a></p>
     <h1>${esc(t.serie ?? t.titel)}${t.omgang ? ` <span class="muted">omg ${t.omgang}</span>` : ''}</h1>
     <p class="muted">${esc(t.datum ?? '')} · ${t.deltagare} spelare · ${t.matcher} matcher${t.startpoang ? ` · ${t.startpoang}` : ''}
       · <a href="${esc(t.n01_url)}" target="_blank" rel="noopener">Öppna i n01 ↗</a></p>
