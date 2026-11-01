@@ -1,5 +1,5 @@
-// Tävlingssida: samma statistik som n01:s statistiksida, grupper och slutspel
-import { api, esc, fmt, heltal, spelarlank } from './lib.js?v=0.9.3';
+// Tävlingssida: samma statistik som n01:s statistiksida, grupper, slutspel och matcherna i tidsordning
+import { api, esc, fmt, heltal, spelarlank, datumTid } from './lib.js?v=0.9.4';
 
 const KOLUMNER = [
   // nyckel, rubrik, förklaring, sortering (1 = högst först, -1 = lägst först), format
@@ -76,7 +76,8 @@ export async function visaTavling(app, tdid) {
     <p class="muted liten">Samma siffror som n01:s statistiksida. Tryck på en rubrik för att sortera.</p>
     <div class="rulla" id="stat"></div>
     ${grupper(rad, perTpid, matcher)}
-    ${slutspel(matcher, rad?.t_title)}`;
+    ${slutspel(matcher, rad?.t_title)}
+    ${tidslinje(matcher, rad)}`;
 
   app.querySelector('#stat').addEventListener('click', (e) => {
     const b = e.target.closest('[data-sort]'); if (!b) return;
@@ -85,6 +86,7 @@ export async function visaTavling(app, tdid) {
     ritaTabell();
   });
   ritaTabell();
+  kopplaTidslinje(app);
 }
 
 // Gruppspel ur n01:s rr_table/rr_result: vunna matcher, legs, snitt per grupp
@@ -117,6 +119,13 @@ function grupper(rad, perTpid, matcher) {
   return `<h2>Gruppspel</h2><div class="grupper">${html}</div>`;
 }
 
+// Rondens namn bakifrån (final, semifinal …) eller arrangörens egen rubrik i n01
+function rondNamn(typ, r, sista, tTitel) {
+  const egen = typ === 't' ? tTitel?.[r] : '';
+  if (egen) return egen;
+  return ['Final', 'Semifinal', 'Kvartsfinal', 'Åttondelsfinal'][sista - r] ?? `Omgång ${r + 1}`;
+}
+
 // Slutspel: matcherna per rond, namngivna bakifrån (final, semifinal …)
 function slutspel(matcher, tTitel) {
   const ko = matcher.filter((m) => m.ttype !== 'rr' && m.ttype !== 'lg');
@@ -126,13 +135,7 @@ function slutspel(matcher, tTitel) {
   return typer.map((typ) => {
     const lista = ko.filter((m) => m.ttype === typ);
     const ronder = [...new Set(lista.map((m) => m.rond))].sort((a, b) => a - b);
-    const sista = ronder.at(-1);
-    const rondnamn = (r) => {
-      const egen = typ === 't' ? tTitel?.[r] : '';
-      if (egen) return egen;
-      const kvar = sista - r;
-      return ['Final', 'Semifinal', 'Kvartsfinal', 'Åttondelsfinal'][kvar] ?? `Omgång ${r + 1}`;
-    };
+    const rondnamn = (r) => rondNamn(typ, r, ronder.at(-1), tTitel);
     return `<h2>${esc(typnamn[typ] ?? typ)}</h2><div class="ronder">${ronder.map((r) => `
       <div class="kort rond"><h3>${esc(rondnamn(r))}</h3>
         ${lista.filter((m) => m.rond === r).map(matchrad).join('')}
@@ -147,4 +150,55 @@ function matchrad(m) {
     <a class="resultat" href="#/match/${encodeURIComponent(m.mid)}" title="Visa matchen">${m.legs_a ?? 0}–${m.legs_b ?? 0}</a>
     <span class="${vinnB ? 'vinst' : ''}">${m.namn_b ? spelarlank(m.namn_b, m.spelare_b) : '–'} <small class="muted">${fmt(m.snitt_b, 1)}</small></span>
   </div>`;
+}
+
+// Matcherna i tidsordning (v0.9.4, som n01:s matchlista): klockslag, fas, resultat och snitt
+const TL_NYCKEL = 'bdc-tidslinje';
+const lasTl = () => { try { return JSON.parse(localStorage.getItem(TL_NYCKEL)) ?? {}; } catch { return {}; } };
+const sparaTl = (v) => { try { localStorage.setItem(TL_NYCKEL, JSON.stringify({ ...lasTl(), ...v })); } catch { /* ok */ } };
+
+function fasFor(m, matcher, rad) {
+  if (m.ttype === 'rr') {
+    const gi = (rad?.rr_table ?? []).findIndex((g) => g?.includes(m.tpid_a));
+    return gi < 0 ? 'Gruppspel' : (rad?.rr_title?.[gi] || `Grupp ${String.fromCharCode(65 + gi)}`);
+  }
+  const typnamn = { t3: 'Bronsmatch', s2_3: 'Bronsmatch B-slutspel', m: 'Match' };
+  if (typnamn[m.ttype]) return typnamn[m.ttype];
+  const sista = Math.max(...matcher.filter((x) => x.ttype === m.ttype).map((x) => x.rond));
+  const namn = rondNamn(m.ttype, m.rond, sista, rad?.t_title);
+  return { s2: `B-slutspel ${namn.toLowerCase()}`, dw: `Vinnarsidan ${namn.toLowerCase()}`, dl: `Förlorarsidan ${namn.toLowerCase()}` }[m.ttype] ?? namn;
+}
+
+function tidslinje(matcher, rad) {
+  const lista = matcher.filter((m) => m.ttype !== 'lg' && m.starttid);
+  if (!lista.length) return '';
+  const st = lasTl();
+  const senastForst = st.ordning !== 'forst';
+  lista.sort((a, b) => (senastForst ? -1 : 1) * (new Date(a.starttid) - new Date(b.starttid)));
+  return `<details class="tidslinje"${st.oppen ? ' open' : ''}>
+    <summary><h2>Matcher i tidsordning <span class="muted">(${lista.length})</span></h2></summary>
+    <div class="filter tl-ordning">
+      <button type="button" class="chip${senastForst ? ' vald' : ''}" data-ordning="senast">Senaste först</button>
+      <button type="button" class="chip${senastForst ? '' : ' vald'}" data-ordning="forst">Första först</button>
+    </div>
+    <div class="kort tl-lista" data-ordning="${senastForst ? 'senast' : 'forst'}">${lista.map((m) => `<div class="tl-rad">
+      <div class="tl-huvud"><b>${esc(datumTid(m.starttid).slice(11))}</b> · ${esc(fasFor(m, matcher, rad))}${m.klar === false ? ' · <span class="etikett">pågår</span>' : ''}</div>
+      ${matchrad(m)}</div>`).join('')}</div>
+  </details>`;
+}
+
+function kopplaTidslinje(app) {
+  const d = app.querySelector('.tidslinje');
+  if (!d) return;
+  d.addEventListener('toggle', () => sparaTl({ oppen: d.open }));
+  d.querySelector('.tl-ordning').addEventListener('click', (e) => {
+    const b = e.target.closest('[data-ordning]'); if (!b) return;
+    sparaTl({ ordning: b.dataset.ordning });
+    const lista = d.querySelector('.tl-lista');
+    if (lista.dataset.ordning !== b.dataset.ordning) {
+      [...lista.children].reverse().forEach((r) => lista.appendChild(r));
+      lista.dataset.ordning = b.dataset.ordning;
+    }
+    d.querySelectorAll('.tl-ordning [data-ordning]').forEach((x) => x.classList.toggle('vald', x === b));
+  });
 }

@@ -340,3 +340,17 @@ body.tv main { max-width: none; }
 .protokoll td.ut { background: var(--mint); color: var(--bg); font-weight: 800; }
 .protokoll td.ut-pilar { color: var(--mint); font-weight: 700; }
 .protokoll tfoot td { font-size: .75rem; color: var(--dampad); border-top: 2px solid var(--linje); padding-top: .25rem; }
+
+/* Matcher i tidsordning (v0.9.4) */
+.tidslinje { margin-top: 1.2rem; }
+.tidslinje > summary { cursor: pointer; list-style: none; }
+.tidslinje > summary::-webkit-details-marker { display: none; }
+.tidslinje > summary h2 { display: inline; }
+.tidslinje > summary h2::after { content: ' ▾'; color: var(--mint); font-size: .9em; }
+.tidslinje[open] > summary h2::after { content: ' ▴'; }
+.tl-ordning { margin: .6rem 0; }
+.tl-lista { padding: .2rem .8rem; }
+.tl-rad { padding: .45rem 0; border-top: 1px solid var(--linje); }
+.tl-rad:first-child { border-top: 0; }
+.tl-huvud { font-size: .8rem; color: var(--dampad); margin-bottom: .15rem; }
+.tl-huvud b { color: var(--mint); font-variant-numeric: tabular-nums; }

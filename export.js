@@ -1,7 +1,7 @@
 // Admin → Export (v0.9.1): hela databasen som CSV (en fil per tabell och vy) och som SQL
 // (data.sql med insert-satser + schemafilerna ur repot), samlat i en zip-fil.
 // Allt hämtas med adminens inloggning (RLS) i omgångar om 1 000 rader.
-import { api, esc, fmt, heltal } from './lib.js?v=0.9.3';
+import { api, esc, fmt, heltal } from './lib.js?v=0.9.4';
 
 // Tabellerna i den ordning de måste läsas in (främmande nycklar). r = n01:s rådata (jsonb), kan väljas bort.
 const TABELLER = [
@@ -40,7 +40,7 @@ const VYER = [
 const SCHEMA = ['01_schema', '02_index_och_anon', '03_hamtning_schema', '04_vyer', '05_vyer_skrivskydd', '06_konton',
   '07_statistik_utan_borttagna', '08_spelare_match', '09_spelare_match_snabb', '10_admin', '11_f9_summor', '12_cuper',
   '13_logga_alias_stang', '14_uppgift', '15_ta_bort_spelare', '16_distriktsserien',
-  '17_portratt', '18_rekord', '19_stangda_cuper'];
+  '17_portratt', '18_rekord', '19_stangda_cuper', '20_auto_koppling'];
 const SIDA = 1000;
 
 // ---------- hämta ----------

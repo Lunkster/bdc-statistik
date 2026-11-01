@@ -163,6 +163,14 @@ const g1 = await page.locator('.grupp >> nth=0 >> tbody tr >> nth=0').innerText(
 if (!g1.startsWith('Bo')) fel.push('gruppetta grupp A: ' + g1);
 await page.click('.gruppmatcher summary >> nth=0');
 if ((await page.locator('.gruppmatcher >> nth=0 >> a.resultat').count()) < 1) fel.push('grupp: matcherna saknas');
+await page.click('.tidslinje summary');
+if ((await page.locator('.tl-rad').count()) !== 4) fel.push('tidslinje: ska visa 4 matcher');
+const tl1 = await page.locator('.tl-huvud >> nth=0').innerText();
+if (!tl1.includes('20:30') || !tl1.includes('Final')) fel.push('tidslinje: senaste först ska vara finalen 20:30 svensk tid: ' + tl1);
+await page.click('.tl-ordning [data-ordning="forst"]');
+const tl2 = await page.locator('.tl-huvud >> nth=0').innerText();
+if (!tl2.includes('18:10') || !tl2.includes('Grupp A')) fel.push('tidslinje: första först: ' + tl2);
+await kontroll('2b-tidslinje');
 const ronder = await page.locator('.rond h3').allInnerTexts();
 if (ronder.join(',') !== 'Kvartsfinal,Semifinal,Final') fel.push('rondnamn: ' + ronder);
 if (!(await page.locator('body').innerText()).includes('43,63')) fel.push('decimalkomma saknas');
