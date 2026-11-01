@@ -1,6 +1,6 @@
 // Admin: hämtning, koppla namn (allmänt eller per tävling), spelarregister, slå ihop, ändringslogg
-import { api, skriv, rpc, funktion, esc, fmt, datumTid, arAdmin } from './lib.js?v=0.9.1';
-import { visaExport } from './export.js?v=0.9.1';
+import { api, skriv, rpc, funktion, esc, fmt, datumTid, arAdmin } from './lib.js?v=0.9.2';
+import { visaExport } from './export.js?v=0.9.2';
 
 const flikar = [['', 'Översikt'], ['gora', 'Att göra'], ['namn', 'Koppla namn'], ['spelare', 'Spelarregister'], ['cuper', 'Cuper'], ['serien', 'Serien'], ['logg', 'Ändringslogg'], ['export', 'Export']];
 const meny = (aktiv) => `<div class="filter" role="navigation" aria-label="Admin">${flikar.map(([k, n]) =>
@@ -262,15 +262,15 @@ const REGLER = [
 const STD = { deltagande: 5, finalvinst: 5, finalforlust: 3, semifinal: 2, vunnen_match: 1, hog_utgang: 1, hog_utgang_fran: 100, t180: 1, t171: 0, kortset: 0, kortset_pilar: 21, bull: 1 };
 
 async function visaCupLista(app) {
-  const cuper = await api('tavling?typ=eq.klubbcup&select=id,namn,serie,fran,till,aktiv&order=fran.desc.nullslast');
+  const cuper = await api('tavling?typ=eq.klubbcup&select=id,namn,serie,fran,till,aktiv,stangd&order=fran.desc.nullslast');
   app.innerHTML = `
     <h1>Cuper</h1>${meny('cuper')}
     <p class="muted">En cup samlar tävlingar med samma serie inom ett datumintervall – nya omgångar kommer med automatiskt. Under varje cup: poängregler, final, uteslutna omgångar och bull-utgångar.</p>
     <p><a class="btn" href="#/admin/cuper/ny">Ny cup</a></p>
     <div class="rulla"><table class="tabell">
-      <thead><tr><th class="fast">Cup</th><th>Serie</th><th>Period</th><th>Aktiv</th></tr></thead>
+      <thead><tr><th class="fast">Cup</th><th>Serie</th><th>Period</th><th>Aktiv</th><th>Stängd</th></tr></thead>
       <tbody>${cuper.map((c) => `<tr><td class="fast"><a href="#/admin/cuper/${c.id}">${esc(c.namn)}</a></td><td>${esc(c.serie ?? '')}</td>
-        <td>${esc(c.fran ?? '…')} – ${esc(c.till ?? '…')}</td><td>${c.aktiv ? 'ja' : 'nej'}</td></tr>`).join('')}</tbody></table></div>`;
+        <td>${esc(c.fran ?? '…')} – ${esc(c.till ?? '…')}</td><td>${c.aktiv ? 'ja' : 'nej'}</td><td>${c.stangd ? 'ja' : 'nej'}</td></tr>`).join('')}</tbody></table></div>`;
 }
 
 async function visaCupAdmin(app, idText) {
@@ -284,12 +284,14 @@ async function visaCupAdmin(app, idText) {
     api('spelare?select=id,namn,visningsnamn&aktiv=eq.true'),
     ny ? [] : api(`poang_manuell?tavling_id=eq.${id}&select=*`),
   ]);
-  const c = cupRad[0] ?? { namn: '', serie: '', fran: '', till: '', kvalgrans: 25, regler: STD, aktiv: true, kommentar: '' };
+  const c = cupRad[0] ?? { namn: '', serie: '', fran: '', till: '', kvalgrans: 25, regler: STD, aktiv: true, stangd: false, kommentar: '' };
   if (!ny && !cupRad.length) { app.innerHTML = '<p class="fel">Cupen finns inte.</p>'; return; }
   spelare.sort(sortSp);
   const sp = Object.fromEntries(spelare.map((s) => [s.id, s]));
   const serier = [...new Set(tavlingar.map((t) => t.serie).filter(Boolean))].sort((a, b) => a.localeCompare(b, 'sv'));
   const r = { ...STD, ...(c.regler ?? {}) };
+  const las = !!c.stangd;                      // stängd cup: det som avgör poängen är låst (migration 19)
+  const dis = las ? ' disabled' : '';
   const iCup = new Map(tt.map((t) => [t.tdid, t.roll]));
   const valPa = new Map(valRader.map((v) => [v.tdid, v.roll]));
   // Tävlingar att visa: de som är med + uteslutna + övriga med samma serie
@@ -302,13 +304,15 @@ async function visaCupAdmin(app, idText) {
     <div class="kort">
       <h2>Cupen</h2>
       <div class="formrad"><label>Namn <input id="c-namn" value="${esc(c.namn)}" size="30"></label></div>
-      <div class="formrad"><label>Serie <select id="c-serie"><option value="">–</option>${serier.map((s) => `<option${s === c.serie ? ' selected' : ''}>${esc(s)}</option>`).join('')}</select></label>
-        <label>Från <input id="c-fran" value="${esc(c.fran ?? '')}" placeholder="ÅÅÅÅ-MM-DD" size="11"></label>
-        <label>Till <input id="c-till" value="${esc(c.till ?? '')}" placeholder="ÅÅÅÅ-MM-DD" size="11"></label>
-        <label>Kvalgräns <input id="c-kval" value="${c.kvalgrans ?? ''}" size="4" inputmode="numeric"></label>
-        <label class="rad"><input type="checkbox" id="c-aktiv"${c.aktiv ? ' checked' : ''}> Aktiv</label></div>
+      <div class="formrad"><label>Serie <select id="c-serie"${dis}><option value="">–</option>${serier.map((s) => `<option${s === c.serie ? ' selected' : ''}>${esc(s)}</option>`).join('')}</select></label>
+        <label>Från <input id="c-fran" value="${esc(c.fran ?? '')}" placeholder="ÅÅÅÅ-MM-DD" size="11"${dis}></label>
+        <label>Till <input id="c-till" value="${esc(c.till ?? '')}" placeholder="ÅÅÅÅ-MM-DD" size="11"${dis}></label>
+        <label>Kvalgräns <input id="c-kval" value="${c.kvalgrans ?? ''}" size="4" inputmode="numeric"${dis}></label>
+        <label class="rad"><input type="checkbox" id="c-aktiv"${c.aktiv ? ' checked' : ''}> Aktiv</label>
+        <label class="rad"><input type="checkbox" id="c-stangd"${las ? ' checked' : ''}> Stängd</label></div>
+      <p class="muted liten">${las ? '<b>Cupen är stängd.</b> Serie, period, kvalgräns, poängregler, tävlingar och bull-utgångar är låsta. Avmarkera Stängd och tryck Spara för att öppna den igen. ' : 'Stäng cupen när den är avgjord: då låses det som avgör poängen. '}Spelare och namnkopplingar kan fortfarande ändras, och ställningen räknas om.</p>
       <h3>Poängregler</h3>
-      <div class="regler">${REGLER.map(([k, n]) => `<label>${n} <input data-regel="${k}" value="${r[k] ?? 0}" size="4" inputmode="numeric"></label>`).join('')}</div>
+      <div class="regler">${REGLER.map(([k, n]) => `<label>${n} <input data-regel="${k}" value="${r[k] ?? 0}" size="4" inputmode="numeric"${dis}></label>`).join('')}</div>
       <p class="muted liten">0 = räknas inte. Kortset = vunnet leg på högst så många pilar. Hög utgång = utgång på minst så många poäng.</p>
       <div class="formrad"><label>Kommentar <input id="c-kommentar" value="${esc(c.kommentar ?? '')}" size="50"></label></div>
       <button class="btn" id="c-spara" type="button">${ny ? 'Skapa cupen' : 'Spara'}</button>
@@ -317,21 +321,21 @@ async function visaCupAdmin(app, idText) {
     ${ny ? '' : `
     <h2>Tävlingar</h2>
     <p class="muted liten">Med automatiskt: serien <b>${esc(c.serie ?? '–')}</b> mellan ${esc(c.fran ?? '…')} och ${esc(c.till ?? '…')}. Ändra rollen för att markera finalspel, utesluta en omgång eller ta med en tävling som inte följer regeln.</p>
-    <div class="formrad"><select id="lagg-till">${tavlingar.filter((t) => !iCup.has(t.tdid)).map((t) => `<option value="${esc(t.tdid)}">${esc(t.datum ?? '')} ${esc(t.serie ?? t.titel)}${t.omgang ? ` ${t.omgang}` : ''}</option>`).join('')}</select>
-      <select id="lagg-roll"><option value="final">som finalspel</option><option value="omgang">som omgång</option></select>
-      <button class="btn liten" id="lagg" type="button">Lägg till</button></div>
+    <div class="formrad"><select id="lagg-till"${dis}>${tavlingar.filter((t) => !iCup.has(t.tdid)).map((t) => `<option value="${esc(t.tdid)}">${esc(t.datum ?? '')} ${esc(t.serie ?? t.titel)}${t.omgang ? ` ${t.omgang}` : ''}</option>`).join('')}</select>
+      <select id="lagg-roll"${dis}><option value="final">som finalspel</option><option value="omgang">som omgång</option></select>
+      <button class="btn liten" id="lagg" type="button"${dis}>Lägg till</button></div>
     <div class="rulla"><table class="tabell">
       <thead><tr><th class="fast">Datum</th><th>Tävling</th><th>Roll</th></tr></thead>
       <tbody>${visas.map((t) => `<tr data-tdid="${esc(t.tdid)}"><td class="fast">${esc(t.datum ?? '')}</td>
         <td><a href="#/tavling/${encodeURIComponent(t.tdid)}">${esc(t.serie ?? t.titel)}${t.omgang ? ` ${t.omgang}` : ''}</a></td>
-        <td><select class="roll">${[['omgang', 'Omgång'], ['final', 'Finalspel'], ['utesluten', 'Utesluten'], ['ingen', '– inte med –']].map(([v, n]) =>
+        <td><select class="roll"${dis}>${[['omgang', 'Omgång'], ['final', 'Finalspel'], ['utesluten', 'Utesluten'], ['ingen', '– inte med –']].map(([v, n]) =>
           `<option value="${v}"${rollAv(t.tdid) === v ? ' selected' : ''}>${n}</option>`).join('')}</select></td></tr>`).join('')}</tbody></table></div>
     <h2>Bull-utgångar</h2>
     <p class="muted liten">Går inte att läsa ur n01 – fyll i antal per spelare.</p>
     <ul class="kandidater">${manuell.map((m) => `<li>${esc(m.spelare_id ? sp[m.spelare_id]?.namn ?? m.spelare_id : m.n01_namn)}: ${m.antal} ${m.kommentar ? `<small class="muted">${esc(m.kommentar)}</small>` : ''}
-      <button class="btn liten sekundar ta-bort-bull" data-id="${m.id}" type="button">Ta bort</button></li>`).join('') || '<li class="muted">Inga.</li>'}</ul>
-    <div class="formrad"><select id="bull-spelare">${val(spelare, null)}</select><input id="bull-antal" value="1" size="3" inputmode="numeric">
-      <button class="btn liten" id="bull-lagg" type="button">Lägg till</button></div>`}`;
+      <button class="btn liten sekundar ta-bort-bull" data-id="${m.id}" type="button"${dis}>Ta bort</button></li>`).join('') || '<li class="muted">Inga.</li>'}</ul>
+    <div class="formrad"><select id="bull-spelare"${dis}>${val(spelare, null)}</select><input id="bull-antal" value="1" size="3" inputmode="numeric"${dis}>
+      <button class="btn liten" id="bull-lagg" type="button"${dis}>Lägg till</button></div>`}`;
 
   const svar = app.querySelector('.svar');
   const om = (nyttId) => (nyttId ? (location.hash = `#/admin/cuper/${nyttId}`) : visaCupAdmin(app, idText));
@@ -342,7 +346,7 @@ async function visaCupAdmin(app, idText) {
     app.querySelectorAll('[data-regel]').forEach((i) => { regler[i.dataset.regel] = Number(i.value.replace(',', '.')) || 0; });
     const rad = { namn: app.querySelector('#c-namn').value.trim(), serie: app.querySelector('#c-serie').value || null,
       fran: datum(app.querySelector('#c-fran').value), till: datum(app.querySelector('#c-till').value),
-      kvalgrans: Number(app.querySelector('#c-kval').value) || null, aktiv: app.querySelector('#c-aktiv').checked,
+      kvalgrans: Number(app.querySelector('#c-kval').value) || null, aktiv: app.querySelector('#c-aktiv').checked, stangd: app.querySelector('#c-stangd').checked,
       kommentar: app.querySelector('#c-kommentar').value.trim() || null, regler };
     if (!rad.namn) throw new Error('Skriv ett namn');
     if (ny) { const [x] = await skriv('POST', 'tavling', rad); return x.id; }

@@ -1,6 +1,6 @@
 // Klubbrekord på 501 (v0.9.1, önskemål Henrik 2026-11-01): bästa leg, högsta utgång, 180:or,
 // högsta snitt i en match och i en tävling. Bara klubbens tävlingar och legs som startade på 501.
-import { api, esc, fmt, spelarlank } from './lib.js?v=0.9.1';
+import { api, esc, fmt, spelarlank } from './lib.js?v=0.9.2';
 
 const N = 10;
 const mlank = (mid) => `#/match/${encodeURIComponent(mid)}`;

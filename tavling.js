@@ -1,5 +1,5 @@
 // Tävlingssida: samma statistik som n01:s statistiksida, grupper och slutspel
-import { api, esc, fmt, heltal, spelarlank } from './lib.js?v=0.9.1';
+import { api, esc, fmt, heltal, spelarlank } from './lib.js?v=0.9.2';
 
 const KOLUMNER = [
   // nyckel, rubrik, förklaring, sortering (1 = högst först, -1 = lägst först), format

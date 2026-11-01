@@ -1,5 +1,5 @@
 // Nytt i appen: visar nyheter.json (görs av skript ur Obsidian-anteckningen Dart-klubbdatabas - Nyheter)
-import { esc } from './lib.js?v=0.9.1';
+import { esc } from './lib.js?v=0.9.2';
 
 export async function visaNyheter(app) {
   const r = await fetch(`nyheter.json?t=${Date.now()}`);

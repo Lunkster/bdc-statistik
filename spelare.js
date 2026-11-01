@@ -1,6 +1,6 @@
 // Spelarsida (kopplad person eller okopplat n01-namn) med grafer och rekord, samt spelarlista
-import { api, esc, fmt, heltal, spelarlank, bildUrl, laddaUppBild, taBortBild } from './lib.js?v=0.9.1';
-import { tidsdiagram } from './diagram.js?v=0.9.1';
+import { api, esc, fmt, heltal, spelarlank, bildUrl, laddaUppBild, taBortBild } from './lib.js?v=0.9.2';
+import { tidsdiagram } from './diagram.js?v=0.9.2';
 
 let vyLage = 'tavling';   // 'tavling' | 'match' – minns mellan spelare
 
