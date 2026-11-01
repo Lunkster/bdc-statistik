@@ -1,6 +1,6 @@
 // Tävlingssida: samma statistik som n01:s statistiksida, grupper, slutspel och matcherna i tidsordning
-import { api, esc, fmt, heltal, spelarlank, datumTid } from './lib.js?v=0.9.9';
-import { checkoutUppskattad, besokUrN01 } from './utgang.js?v=0.9.9';
+import { api, esc, fmt, heltal, spelarlank, datumTid } from './lib.js?v=0.10.0';
+import { checkoutUppskattad, besokUrN01 } from './utgang.js?v=0.10.0';
 
 const pct = (v) => (v == null ? '–' : `${fmt(v, 1)} %`);
 const OMG = { '-1': 'F', '-2': 'SF', '-3': 'KF', '-4': 'ÅF' };
@@ -283,6 +283,7 @@ function kopplaTidslinje(app) {
 
 // Slutspelsträd (v0.9.7, önskemål Henrik 2026-11-02) ur n01:s t_table/t_result.
 // t_table[r] = platserna i rond r (par 2k/2k+1 möts, "" = fribiljett); sista raden = vinnaren.
+// Ingen egen vinnarruta – vinnaren står överst och i fetstil i finalen (Henrik 2026-11-02).
 // Inledande ronder där mer än hälften är fribiljetter visas inte som egna kolumner – de som
 // spelade där får en liten notis vid namnet i första visade ronden.
 function slutspelstrad(matcher, rad, perTpid) {
@@ -326,10 +327,8 @@ function slutspelstrad(matcher, rad, perTpid) {
     kolumner.push(`<div class="tr-kol${r === sista ? ' final' : ''}"><h3>${esc(rondNamn('t', r, sista, rad?.t_title))}</h3>
       <div class="tr-ronder">${grupper.map((g) => `<div class="tr-par${g.length === 2 ? '' : ' ensam'}">${g.map((x) => matchKort(r, x)).join('')}</div>`).join('')}</div></div>`);
   }
-  const vinnare = tab[sista + 1]?.[0];
-  if (vinnare) kolumner.push(`<div class="tr-kol vinnare"><h3>Vinnare</h3><div class="tr-ronder"><div class="tr-par ensam"><div class="tr-match vinnarkort">🏆 ${spelarlank(namn(vinnare), perTpid[vinnare]?.spelare_id)}</div></div></div></div>`);
   return `<h2>Slutspel</h2>
-    <p class="muted liten">Tryck på siffrorna för att se matchens protokoll. Dra i sidled för att se hela trädet.</p>
+    <p class="muted liten">Tryck på siffrorna för att se matchens protokoll.</p>
     <div class="trad-rulla"><div class="trad">${kolumner.join('')}</div></div>`;
 }
 

@@ -162,11 +162,11 @@ const g1 = await page.locator('.grupp >> nth=0 >> tbody tr >> nth=0').innerText(
 if (!g1.startsWith('Bo')) fel.push('gruppetta grupp A: ' + g1);
 await page.click('.gruppmatcher summary >> nth=0');
 if ((await page.locator('.gruppmatcher >> nth=0 >> a.resultat').count()) < 1) fel.push('grupp: matcherna saknas');
-if ((await page.locator('.tr-kol').count()) !== 3) fel.push('slutspelsträd: ska ha Semifinal, Final och Vinnare');
+if ((await page.locator('.tr-kol').count()) !== 2) fel.push('slutspelsträd: ska ha Semifinal och Final (ingen vinnarruta)');
 if ((await page.locator('.tr-poang').count()) !== 6) fel.push('slutspelsträd: siffrorna ska länka till matcherna');
-if (!(await page.locator('.vinnarkort').innerText()).includes('Ada')) fel.push('slutspelsträd: vinnaren ska vara Ada');
+if (!(await page.locator('.tr-kol.final .tr-spelare.vann').innerText()).includes('Ada')) fel.push('slutspelsträd: Ada ska vara fet i finalen');
 const ronder = await page.locator('.tr-kol h3').allInnerTexts();
-if (ronder.join(',') !== 'Semifinal,Final,Vinnare') fel.push('rondnamn i trädet: ' + ronder);
+if (ronder.join(',') !== 'Semifinal,Final') fel.push('rondnamn i trädet: ' + ronder);
 const regel = await page.locator('.rundregel').innerText();
 if (!regel.includes('gruppspel max 13 rundor (39 pilar var)') || !regel.includes('slutspel max 9 rundor (27 pilar var)')) fel.push('rundregel: ' + regel);
 await kontroll('2-resultat');
