@@ -147,11 +147,44 @@ await kontroll('2c-karusell');
 await page.setViewportSize({ width: 1920, height: 1080 }); await page.waitForTimeout(300); await page.screenshot({ path: '/tmp/bdc-2d-karusell-tv.png' }); await page.setViewportSize({ width: 390, height: 844 });
 await page.click('.karusell a:text("Stäng")'); await page.waitForSelector('.tavlingsrad');
 if (!(await page.locator('.topbar').isVisible())) fel.push('karusell: menyn kommer inte tillbaka');
-// 3. Turnering
+// 3. Tävling: flikarna Resultat, Matcher, Statistik
 await page.click('.tavlingsrad >> nth=0');
-await page.waitForSelector('#stat table');
+await page.waitForSelector('.tavlingsflikar');
 await kontroll('2-turnering');
 if ((await page.locator('a.cuplank[href="#/cup/1"]').count()) !== 1) fel.push('turnering: länk till cupen saknas');
+if ((await page.locator('.tavlingsflikar [data-flik]').allInnerTexts()).join(',') !== 'Resultat,Matcher,Statistik') fel.push('flikar: fel namn eller ordning');
+if (await page.locator('#stat').isVisible()) fel.push('flikar: statistiken ska inte synas på Resultat');
+// Resultat: vinnare, slutspelsträd, gruppspel i den ordningen
+const ordning = await page.evaluate(() => ['.vinnarrad', '.trad', '.grupper'].map((q) => document.querySelector(q)?.getBoundingClientRect().top ?? -1));
+if (!(ordning[0] >= 0 && ordning[0] < ordning[1] && ordning[1] < ordning[2])) fel.push('resultat: ordningen ska vara vinnare, slutspelsträd, gruppspel: ' + ordning);
+const grupper = await page.locator('.grupp').count(); if (grupper !== 2) fel.push('grupper: ' + grupper);
+const g1 = await page.locator('.grupp >> nth=0 >> tbody tr >> nth=0').innerText();
+if (!g1.startsWith('Bo')) fel.push('gruppetta grupp A: ' + g1);
+await page.click('.gruppmatcher summary >> nth=0');
+if ((await page.locator('.gruppmatcher >> nth=0 >> a.resultat').count()) < 1) fel.push('grupp: matcherna saknas');
+if ((await page.locator('.tr-kol').count()) !== 3) fel.push('slutspelsträd: ska ha Semifinal, Final och Vinnare');
+if ((await page.locator('.tr-poang').count()) !== 6) fel.push('slutspelsträd: siffrorna ska länka till matcherna');
+if (!(await page.locator('.vinnarkort').innerText()).includes('Ada')) fel.push('slutspelsträd: vinnaren ska vara Ada');
+const ronder = await page.locator('.tr-kol h3').allInnerTexts();
+if (ronder.join(',') !== 'Semifinal,Final,Vinnare') fel.push('rondnamn i trädet: ' + ronder);
+const regel = await page.locator('.rundregel').innerText();
+if (!regel.includes('gruppspel max 13 rundor (39 pilar var)') || !regel.includes('slutspel max 9 rundor (27 pilar var)')) fel.push('rundregel: ' + regel);
+await kontroll('2-resultat');
+// Matcher
+await page.click('[data-flik="matcher"]');
+if (!page.url().endsWith('/matcher')) fel.push('flikar: adressen ska sluta på /matcher: ' + page.url());
+if ((await page.locator('.tl-rad').count()) !== 4) fel.push('tidslinje: ska visa 4 matcher');
+const tl1 = await page.locator('.tl-huvud >> nth=0').innerText();
+if (!tl1.includes('20:30') || !tl1.includes('Final')) fel.push('tidslinje: senaste först ska vara finalen 20:30 svensk tid: ' + tl1);
+await page.click('.tl-ordning [data-ordning="forst"]');
+const tl2 = await page.locator('.tl-huvud >> nth=0').innerText();
+if (!tl2.includes('18:10') || !tl2.includes('Grupp A')) fel.push('tidslinje: första först: ' + tl2);
+await kontroll('2b-tidslinje');
+// Statistik
+await page.click('[data-flik="statistik"]');
+await page.waitForSelector('#stat table');
+if (!page.url().endsWith('/statistik')) fel.push('flikar: adressen ska sluta på /statistik');
+if ((await page.locator('.topp').count()) < 1) fel.push('statistik: topplistorna saknas');
 const forsta = await page.locator('#stat tbody tr >> nth=0 >> td >> nth=0').innerText();
 if (forsta !== 'Ada') fel.push('sortering på placering: ' + forsta);
 await page.click('[data-sort="snitt"]');
@@ -160,11 +193,6 @@ if (efterSnitt !== 'Ada') fel.push('sortering snitt (högst först) gav ' + efte
 await page.click('[data-sort="snitt"]');
 const lagst = await page.locator('#stat tbody tr >> nth=0 >> td >> nth=0').innerText();
 if (lagst !== 'Fia') fel.push('sortering snitt (lägst först) gav ' + lagst);
-const grupper = await page.locator('.grupp').count(); if (grupper !== 2) fel.push('grupper: ' + grupper);
-const g1 = await page.locator('.grupp >> nth=0 >> tbody tr >> nth=0').innerText();
-if (!g1.startsWith('Bo')) fel.push('gruppetta grupp A: ' + g1);
-await page.click('.gruppmatcher summary >> nth=0');
-if ((await page.locator('.gruppmatcher >> nth=0 >> a.resultat').count()) < 1) fel.push('grupp: matcherna saknas');
 if (await page.locator('#stat th:has-text("Keep")').isVisible()) fel.push('statistik: Keep ska vara dold i mobilen före Detaljer');
 await page.click('.stat-detaljer');
 if (!(await page.locator('#stat th:has-text("Keep")').isVisible())) fel.push('statistik: Detaljer visar inte Keep');
@@ -172,26 +200,13 @@ const adaRad = await page.locator('#stat tbody tr:has-text("Ada")').innerText();
 if (!adaRad.includes('88,9 %') || !adaRad.includes('75,0 %') || !/\bF\b/.test(adaRad)) fel.push('statistik: Keep/Break/Omg för Ada: ' + adaRad.replace(/\s+/g, ' '));
 if (!adaRad.includes('35,0 %')) fel.push('statistik: Utgång-% för Ada ska vara 35,0 %');
 if (!(await page.locator('#stat th:has-text("Checkout-%")').isVisible())) fel.push('statistik: Checkout-% saknas');
-await kontroll('2a-statistik-detaljer');
-if ((await page.locator('.tr-kol').count()) !== 3) fel.push('slutspelsträd: ska ha Semifinal, Final och Vinnare');
-if ((await page.locator('.tr-poang').count()) !== 6) fel.push('slutspelsträd: siffrorna ska länka till matcherna');
-if (!(await page.locator('.vinnarkort').innerText()).includes('Ada')) fel.push('slutspelsträd: vinnaren ska vara Ada');
-if ((await page.locator('.tr-kol >> nth=0 >> h3').innerText()) !== 'Semifinal') fel.push('slutspelsträd: fribiljettronden ska inte visas');
-const regel = await page.locator('.rundregel').innerText();
-if (!regel.includes('gruppspel max 13 rundor (39 pilar var)') || !regel.includes('slutspel max 9 rundor (27 pilar var)')) fel.push('rundregel: ' + regel);
-await page.click('.tidslinje summary');
-if ((await page.locator('.tl-rad').count()) !== 4) fel.push('tidslinje: ska visa 4 matcher');
-const tl1 = await page.locator('.tl-huvud >> nth=0').innerText();
-if (!tl1.includes('20:30') || !tl1.includes('Final')) fel.push('tidslinje: senaste först ska vara finalen 20:30 svensk tid: ' + tl1);
-await page.click('.tl-ordning [data-ordning="forst"]');
-const tl2 = await page.locator('.tl-huvud >> nth=0').innerText();
-if (!tl2.includes('18:10') || !tl2.includes('Grupp A')) fel.push('tidslinje: första först: ' + tl2);
-await kontroll('2b-tidslinje');
-const ronder = await page.locator('.tr-kol h3').allInnerTexts();
-if (ronder.join(',') !== 'Semifinal,Final,Vinnare') fel.push('rondnamn i trädet: ' + ronder);
 if (!(await page.locator('body').innerText()).includes('43,63')) fel.push('decimalkomma saknas');
+await kontroll('2a-statistik-detaljer');
+// Direktlänk till en flik
+await page.goto(B + '#/tavling/t_nRTA_1280/matcher'); await page.waitForSelector('.tl-rad');
+if (!(await page.locator('[data-flik="matcher"]').getAttribute('class')).includes('vald')) fel.push('flikar: direktlänken öppnar inte Matcher');
 // 4. Spelare (kopplad) och okopplat namn
-await page.click('a[href="#/spelare/47"] >> nth=0');
+await page.click('a[href="#/spelare/47"]:visible >> nth=0');
 await page.waitForSelector('.nyckeltal');
 await kontroll('3-spelare');
 if ((await page.locator('.graf:has-text("För få värden")').count()) !== 6) fel.push('per turnering med en turnering ska visa för få värden');
@@ -353,13 +368,13 @@ fs.copyFileSync(await zipFil.path(), '/tmp/bdc-export.zip');
 await page.waitForSelector('#status:text("Klart")');
 await kontroll('6g-export');
 // Gamla länkar #/turnering/… leder till #/tavling/…
-await page.goto(B + '#/turnering/t_nRTA_1280'); await page.waitForSelector('#stat table');
+await page.goto(B + '#/turnering/t_nRTA_1280'); await page.waitForSelector('.tavlingsflikar');
 if (!page.url().includes('#/tavling/t_nRTA_1280')) fel.push('gammal länk leder inte rätt: ' + page.url());
 await page.goto(B + '#/admin/logg'); await page.waitForSelector('table');
 await page.goto(B + '#/admin/namn'); await page.waitForSelector('table');
 // 6. Skrivbord
 await page.setViewportSize({ width: 1280, height: 900 });
-await page.goto(B + '#/tavling/t_nRTA_1280'); await page.waitForSelector('#stat table');
+await page.goto(B + '#/tavling/t_nRTA_1280/statistik'); await page.waitForSelector('#stat table');
 await page.screenshot({ path: '/tmp/bdc-7-turnering-dator.png', fullPage: true });
 
 await browser.close(); server.close();

@@ -1,8 +1,8 @@
 // Karusell (v0.9.1, önskemål Henrik 2026-11-01): pågående cupers topplistor, distriktsseriens tabeller
 // där Bankeryd spelar och klubbrekorden. Byter bild automatiskt; svep eller tryck på prickarna.
 // Visas överst på startsidan och i helskärm på #/karusell (t.ex. på en skärm i klubblokalen).
-import { api, esc, fmt, spelarlank } from './lib.js?v=0.9.8';
-import { hamtaRekord, rekordKort } from './rekord.js?v=0.9.8';
+import { api, esc, fmt, spelarlank } from './lib.js?v=0.9.9';
+import { hamtaRekord, rekordKort } from './rekord.js?v=0.9.9';
 
 let timer = null;
 const idag = () => new Intl.DateTimeFormat('sv-SE', { timeZone: 'Europe/Stockholm' }).format(new Date());

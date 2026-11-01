@@ -1,6 +1,6 @@
 // Tävlingssida: samma statistik som n01:s statistiksida, grupper, slutspel och matcherna i tidsordning
-import { api, esc, fmt, heltal, spelarlank, datumTid } from './lib.js?v=0.9.8';
-import { checkoutUppskattad, besokUrN01 } from './utgang.js?v=0.9.8';
+import { api, esc, fmt, heltal, spelarlank, datumTid } from './lib.js?v=0.9.9';
+import { checkoutUppskattad, besokUrN01 } from './utgang.js?v=0.9.9';
 
 const pct = (v) => (v == null ? '–' : `${fmt(v, 1)} %`);
 const OMG = { '-1': 'F', '-2': 'SF', '-3': 'KF', '-4': 'ÅF' };
@@ -36,6 +36,9 @@ const KOLUMNER = [
   ['omg', 'Omg', 'Hur långt spelaren nådde: omgångsnummer, KF/SF/F = kvarts-, semi-, final', 1, null, 'd'],
 ];
 
+// Flikar på tävlingssidan (v0.9.9, önskemål Henrik 2026-11-02): #/tavling/<tdid>[/matcher|/statistik]
+const FLIKAR = [['resultat', 'Resultat'], ['matcher', 'Matcher'], ['statistik', 'Statistik']];
+
 const statOppen = () => { try { return localStorage.getItem('bdc-statdetaljer') === '1'; } catch { return false; } };
 
 // Fält ur n01:s stats_list (per tpid) som vyn inte har
@@ -57,7 +60,7 @@ function berika(s, n, u) {
   s.omg_text = n.rnd ? (n.rnd > 0 ? String(n.rnd) : OMG[n.rnd] ?? String(n.rnd)) : '–';
 }
 
-export async function visaTavling(app, tdid) {
+export async function visaTavling(app, tdid, flikArg) {
   const q = encodeURIComponent(tdid);
   const [[t], [rad], stat, matcher] = await Promise.all([
     api(`v_turnering?tdid=eq.${q}&select=*`),
@@ -79,6 +82,7 @@ export async function visaTavling(app, tdid) {
 
   stat.forEach((s) => berika(s, n01stat?.data?.[s.tpid], utgPer[s.tpid]));
   const perTpid = Object.fromEntries(stat.map((s) => [s.tpid, s]));
+  const flik = FLIKAR.some(([k]) => k === flikArg) ? flikArg : 'resultat';
   let sortering = { nyckel: 'placering', riktning: -1 };
 
   const ritaTabell = () => {
@@ -114,22 +118,31 @@ export async function visaTavling(app, tdid) {
       · <a href="${esc(t.n01_url)}" target="_blank" rel="noopener">Öppna i n01 ↗</a></p>
     ${rundregel(rad)}
     ${cupLankar ? `<div class="filter cuplankar">${cupLankar}</div>` : ''}
-    ${t.vinnare ? `<p class="vinnarrad">🏆 ${spelarlank(t.vinnare, t.vinnare_id)}</p>` : ''}
-    <div class="topplistor">
-      ${topp('Högsta utgångar', hogaUt, (s) => s.high_out)}
-      ${topp('Bästa legs', bastaLeg, (s) => `${s.basta_leg} pilar`)}
-      ${topp('180:or', t180, (s) => s.t180)}
-    </div>
-    <h2>Statistik</h2>
-    <p class="muted liten">Samma siffror som n01:s statistiksida. Tryck på en rubrik för att sortera.</p>
-    <p class="muted liten">* Checkout-% är vår uppskattning av andelen pilar mot dubbel som satt – n01 uppskattar på sitt eget sätt, så siffrorna kan skilja. Utgång-% är exakt: andelen rundor från 170 eller mindre som slutade med utgång.</p>
-    <div class="statbox${statOppen() ? ' oppen' : ''}">
-      <button type="button" class="detaljer-knapp stat-detaljer" aria-expanded="${statOppen()}">Detaljer <span class="pil">▾</span> <small>Vinst-%, Keep/Break, poäng och pilar m.m.</small></button>
-      <div class="rulla" id="stat"></div>
-    </div>
-    ${grupper(rad, perTpid, matcher)}
-    ${slutspel(matcher, rad, perTpid)}
-    ${tidslinje(matcher, rad)}`;
+    <nav class="filter tavlingsflikar" role="tablist" aria-label="Tävlingen">
+      ${FLIKAR.map(([k, n]) => `<button type="button" role="tab" class="chip${k === flik ? ' vald' : ''}" data-flik="${k}" aria-selected="${k === flik}">${n}</button>`).join('')}
+    </nav>
+    <section class="flikpanel" data-panel="resultat"${flik === 'resultat' ? '' : ' hidden'}>
+      ${t.vinnare ? `<p class="vinnarrad">🏆 ${spelarlank(t.vinnare, t.vinnare_id)}</p>` : ''}
+      ${slutspel(matcher, rad, perTpid)}
+      ${grupper(rad, perTpid, matcher)}
+    </section>
+    <section class="flikpanel" data-panel="matcher"${flik === 'matcher' ? '' : ' hidden'}>
+      ${tidslinje(matcher, rad) || '<p class="muted">Inga matcher.</p>'}
+    </section>
+    <section class="flikpanel" data-panel="statistik"${flik === 'statistik' ? '' : ' hidden'}>
+      <div class="topplistor">
+        ${topp('Högsta utgångar', hogaUt, (s) => s.high_out)}
+        ${topp('Bästa legs', bastaLeg, (s) => `${s.basta_leg} pilar`)}
+        ${topp('180:or', t180, (s) => s.t180)}
+      </div>
+      <h2>Statistik</h2>
+      <p class="muted liten">Samma siffror som n01:s statistiksida. Tryck på en rubrik för att sortera.</p>
+      <p class="muted liten">* Checkout-% är vår uppskattning av andelen pilar mot dubbel som satt – n01 uppskattar på sitt eget sätt, så siffrorna kan skilja. Utgång-% är exakt: andelen rundor från 170 eller mindre som slutade med utgång.</p>
+      <div class="statbox${statOppen() ? ' oppen' : ''}">
+        <button type="button" class="detaljer-knapp stat-detaljer" aria-expanded="${statOppen()}">Detaljer <span class="pil">▾</span> <small>Vinst-%, Keep/Break, poäng och pilar m.m.</small></button>
+        <div class="rulla" id="stat"></div>
+      </div>
+    </section>`;
 
   app.querySelector('#stat').addEventListener('click', (e) => {
     const b = e.target.closest('[data-sort]'); if (!b) return;
@@ -144,6 +157,13 @@ export async function visaTavling(app, tdid) {
   });
   ritaTabell();
   kopplaTidslinje(app);
+  app.querySelector('.tavlingsflikar').addEventListener('click', (e) => {
+    const b = e.target.closest('[data-flik]'); if (!b) return;
+    const ny = b.dataset.flik;
+    app.querySelectorAll('.tavlingsflikar [data-flik]').forEach((x) => { x.classList.toggle('vald', x === b); x.setAttribute('aria-selected', x === b); });
+    app.querySelectorAll('.flikpanel').forEach((p) => { p.hidden = p.dataset.panel !== ny; });
+    history.replaceState(null, '', `#/tavling/${encodeURIComponent(tdid)}${ny === 'resultat' ? '' : `/${ny}`}`);   // delbar länk, ingen omladdning
+  });
 }
 
 // Gruppspel ur n01:s rr_table/rr_result: vunna matcher, legs, snitt per grupp
@@ -234,8 +254,8 @@ function tidslinje(matcher, rad) {
   const st = lasTl();
   const senastForst = st.ordning !== 'forst';
   lista.sort((a, b) => (senastForst ? -1 : 1) * (new Date(a.starttid) - new Date(b.starttid)));
-  return `<details class="tidslinje"${st.oppen ? ' open' : ''}>
-    <summary><h2>Matcher i tidsordning <span class="muted">(${lista.length})</span></h2></summary>
+  return `<div class="tidslinje">
+    <h2>Matcher i tidsordning <span class="muted">(${lista.length})</span></h2>
     <div class="filter tl-ordning">
       <button type="button" class="chip${senastForst ? ' vald' : ''}" data-ordning="senast">Senaste först</button>
       <button type="button" class="chip${senastForst ? '' : ' vald'}" data-ordning="forst">Första först</button>
@@ -243,13 +263,12 @@ function tidslinje(matcher, rad) {
     <div class="kort tl-lista" data-ordning="${senastForst ? 'senast' : 'forst'}">${lista.map((m) => `<div class="tl-rad">
       <div class="tl-huvud"><b>${esc(datumTid(m.starttid).slice(11))}</b> · ${esc(fasFor(m, matcher, rad))}${m.klar === false ? ' · <span class="etikett">pågår</span>' : ''}</div>
       ${matchrad(m)}</div>`).join('')}</div>
-  </details>`;
+  </div>`;
 }
 
 function kopplaTidslinje(app) {
   const d = app.querySelector('.tidslinje');
   if (!d) return;
-  d.addEventListener('toggle', () => sparaTl({ oppen: d.open }));
   d.querySelector('.tl-ordning').addEventListener('click', (e) => {
     const b = e.target.closest('[data-ordning]'); if (!b) return;
     sparaTl({ ordning: b.dataset.ordning });

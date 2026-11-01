@@ -343,11 +343,6 @@ body.tv main { max-width: none; }
 
 /* Matcher i tidsordning (v0.9.4) */
 .tidslinje { margin-top: 1.2rem; }
-.tidslinje > summary { cursor: pointer; list-style: none; }
-.tidslinje > summary::-webkit-details-marker { display: none; }
-.tidslinje > summary h2 { display: inline; }
-.tidslinje > summary h2::after { content: ' ▾'; color: var(--mint); font-size: .9em; }
-.tidslinje[open] > summary h2::after { content: ' ▴'; }
 .tl-ordning { margin: .6rem 0; }
 .tl-lista { padding: .2rem .8rem; }
 .tl-rad { padding: .45rem 0; border-top: 1px solid var(--linje); }
@@ -392,3 +387,8 @@ body.tv main { max-width: none; }
 /* Rundgräns (v0.9.8) */
 .rundregel { display: inline-block; background: var(--yta2); border: 1px solid var(--linje); border-radius: var(--radie); padding: .3rem .8rem; font-size: .88rem; margin: .2rem 0 .6rem; }
 .rundregel b { color: var(--mint); }
+
+/* Flikar på tävlingssidan (v0.9.9) */
+.tavlingsflikar { padding: .4rem 0; margin-bottom: .4rem; border-bottom: 1px solid var(--linje); }
+.tavlingsflikar .chip { font: inherit; font-weight: 600; cursor: pointer; padding: .35rem .9rem; }
+.flikpanel > h2:first-child, .flikpanel > .tidslinje:first-child h2 { margin-top: .4rem; }
