@@ -110,7 +110,7 @@ await page.fill('input[name=kod]', 'fel'); await page.click('button.btn');
 await page.waitForSelector('.fel:text("Fel kod.")');
 // 2. Medlem
 await page.fill('input[name=kod]', 'rattkod'); await page.click('button.btn');
-await page.waitForSelector('.turnrad');
+await page.waitForSelector('.tavlingsrad');
 if (await page.locator('#adminlank').isVisible()) fel.push('medlem ser adminlänken');
 await page.waitForSelector('.karusell .bild');
 if ((await page.locator('.karusell .bild').count()) < 3) fel.push('karusell: för få bilder ' + await page.locator('.karusell .bild').count());
@@ -121,7 +121,7 @@ if (!(await page.locator('.karusell .prick >> nth=1').getAttribute('class')).inc
 await page.click('.karusell .prick >> nth=0'); await page.waitForTimeout(600);
 await kontroll('1-turneringar');
 await page.click('.chip[data-serie="Söndagscup"]');
-if ((await page.locator('.turnrad').count()) !== 1) fel.push('filter fungerar inte');
+if ((await page.locator('.tavlingsrad').count()) !== 1) fel.push('filter fungerar inte');
 await page.click('.chip[data-serie=""]');
 // 2b. Rekord och helskärmskarusell
 await page.click('a[data-route="rekord"]'); await page.waitForSelector('.rekordlista');
@@ -143,10 +143,10 @@ await page.waitForFunction(() => document.querySelector('.karusell .prick.vald')
 if (await page.locator('.topbar').isVisible()) fel.push('karusell: menyn syns i helskärm');
 await kontroll('2c-karusell');
 await page.setViewportSize({ width: 1920, height: 1080 }); await page.waitForTimeout(300); await page.screenshot({ path: '/tmp/bdc-2d-karusell-tv.png' }); await page.setViewportSize({ width: 390, height: 844 });
-await page.click('.karusell a:text("Stäng")'); await page.waitForSelector('.turnrad');
+await page.click('.karusell a:text("Stäng")'); await page.waitForSelector('.tavlingsrad');
 if (!(await page.locator('.topbar').isVisible())) fel.push('karusell: menyn kommer inte tillbaka');
 // 3. Turnering
-await page.click('.turnrad >> nth=0');
+await page.click('.tavlingsrad >> nth=0');
 await page.waitForSelector('#stat table');
 await kontroll('2-turnering');
 if ((await page.locator('a.cuplank[href="#/cup/1"]').count()) !== 1) fel.push('turnering: länk till cupen saknas');
@@ -215,7 +215,7 @@ await kontroll('5-spelarlista');
 // 5. Admin
 await page.goto(B + '#/loggaut'); await page.waitForSelector('#login');
 await page.fill('input[name=kod]', 'rattkod'); await page.check('input[name=admin]'); await page.click('button.btn');
-await page.waitForSelector('.turnrad');
+await page.waitForSelector('.tavlingsrad');
 if (!(await page.locator('#adminlank').isVisible())) fel.push('admin ser inte adminlänken');
 await page.goto(B + '#/admin'); await page.waitForSelector('#hamta');
 await page.click('#hamta'); await page.waitForSelector('#hamtsvar:text("Klart")');
@@ -321,11 +321,14 @@ const [zipFil] = await Promise.all([page.waitForEvent('download', { timeout: 600
 fs.copyFileSync(await zipFil.path(), '/tmp/bdc-export.zip');
 await page.waitForSelector('#status:text("Klart")');
 await kontroll('6g-export');
+// Gamla länkar #/turnering/… leder till #/tavling/…
+await page.goto(B + '#/turnering/t_nRTA_1280'); await page.waitForSelector('#stat table');
+if (!page.url().includes('#/tavling/t_nRTA_1280')) fel.push('gammal länk leder inte rätt: ' + page.url());
 await page.goto(B + '#/admin/logg'); await page.waitForSelector('table');
 await page.goto(B + '#/admin/namn'); await page.waitForSelector('table');
 // 6. Skrivbord
 await page.setViewportSize({ width: 1280, height: 900 });
-await page.goto(B + '#/turnering/t_nRTA_1280'); await page.waitForSelector('#stat table');
+await page.goto(B + '#/tavling/t_nRTA_1280'); await page.waitForSelector('#stat table');
 await page.screenshot({ path: '/tmp/bdc-7-turnering-dator.png', fullPage: true });
 
 await browser.close(); server.close();

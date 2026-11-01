@@ -1,10 +1,10 @@
-// Klubbrekord på 501 (v0.9.0, önskemål Henrik 2026-11-01): bästa leg, högsta utgång, 180:or,
-// högsta snitt i en match och i en turnering. Bara klubbens turneringar och legs som startade på 501.
-import { api, esc, fmt, spelarlank } from './lib.js?v=0.9.0';
+// Klubbrekord på 501 (v0.9.1, önskemål Henrik 2026-11-01): bästa leg, högsta utgång, 180:or,
+// högsta snitt i en match och i en tävling. Bara klubbens tävlingar och legs som startade på 501.
+import { api, esc, fmt, spelarlank } from './lib.js?v=0.9.1';
 
 const N = 10;
 const mlank = (mid) => `#/match/${encodeURIComponent(mid)}`;
-const tlank = (tdid) => `#/turnering/${encodeURIComponent(tdid)}`;
+const tlank = (tdid) => `#/tavling/${encodeURIComponent(tdid)}`;
 
 // Hämtar alla rekordlistor (används också av karusellen)
 export async function hamtaRekord(n = N) {
@@ -19,12 +19,12 @@ export async function hamtaRekord(n = N) {
     api(`v_turnering_statistik?tdid=${ids}&t180=gt.0&select=tdid,namn,spelare_id,t180`),
     api(`v_spelare_match?tdid=${ids}&t180=gt.0&order=t180.desc&limit=${n}&select=mid,tdid,datum,namn,spelare_id,mot_namn,t180`),
   ]);
-  // 180:or totalt per person (eller okopplat namn) och flest i en turnering
+  // 180:or totalt per person (eller okopplat namn) och flest i en tävling
   const tot = new Map();
   for (const r of t180rader) {
     const k = r.spelare_id ? `s${r.spelare_id}` : `n${r.namn}`;
-    const x = tot.get(k) ?? { namn: r.namn, spelare_id: r.spelare_id, t180: 0, turneringar: 0 };
-    x.t180 += r.t180; x.turneringar++; tot.set(k, x);
+    const x = tot.get(k) ?? { namn: r.namn, spelare_id: r.spelare_id, t180: 0, tavlingar: 0 };
+    x.t180 += r.t180; x.tavlingar++; tot.set(k, x);
   }
   const t180tot = [...tot.values()].sort((a, b) => b.t180 - a.t180).slice(0, n);
   const t180turn = [...t180rader].sort((a, b) => b.t180 - a.t180).slice(0, n);
@@ -47,8 +47,8 @@ export function rekordKort(R) {
       (r) => `<b>${fmt(r.snitt, 2)}</b>`, (r) => `<a href="${mlank(r.mid)}">${r.legs_vunna}–${r.legs_forlorade} mot ${esc(r.mot_namn ?? '?')}</a>, ${i(r)}`],
     ['Högsta snitt i en tävling', '3-pilssnitt, minst 3 matcher', R.turnSnitt,
       (r) => `<b>${fmt(r.snitt, 2)}</b>`, (r) => `<a href="${tlank(r.tdid)}">${i(r)}</a> · ${r.matcher} matcher`],
-    ['Flest 180:or totalt', 'Alla 501-turneringar', R.t180tot,
-      (r) => `<b>${r.t180}</b>`, (r) => `${r.turneringar} tävlingar`],
+    ['Flest 180:or totalt', 'Alla 501-tävlingar', R.t180tot,
+      (r) => `<b>${r.t180}</b>`, (r) => `${r.tavlingar} tävlingar`],
     ['Flest 180:or i en tävling', '', R.t180turn,
       (r) => `<b>${r.t180}</b>`, (r) => `<a href="${tlank(r.tdid)}">${i(r)}</a>`],
     ['Flest 180:or i en match', '', R.match180,

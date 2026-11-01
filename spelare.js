@@ -1,8 +1,8 @@
 // Spelarsida (kopplad person eller okopplat n01-namn) med grafer och rekord, samt spelarlista
-import { api, esc, fmt, heltal, spelarlank, bildUrl, laddaUppBild, taBortBild } from './lib.js?v=0.9.0';
-import { tidsdiagram } from './diagram.js?v=0.9.0';
+import { api, esc, fmt, heltal, spelarlank, bildUrl, laddaUppBild, taBortBild } from './lib.js?v=0.9.1';
+import { tidsdiagram } from './diagram.js?v=0.9.1';
 
-let vyLage = 'turnering';   // 'turnering' | 'match' – minns mellan spelare
+let vyLage = 'tavling';   // 'tavling' | 'match' – minns mellan spelare
 
 let listSort = { k: 't', dir: -1 };   // kolumn och riktning (-1 = störst först) – minns mellan besök
 
@@ -149,7 +149,7 @@ async function rita(app, rubrik, allaTurn, allaMatcher, under, extra = '', huvud
   const tdids = [...new Set(allaTurn.map((r) => r.tdid).concat(allaMatcher.map((m) => m.tdid)))];
   const turnInfo = tdids.length ? await api(`v_turnering?tdid=in.(${tdids.map((t) => `"${t}"`).join(',')})&select=tdid,datum,serie,omgang,titel,deltagare,startpoang`) : [];
   const T = Object.fromEntries(turnInfo.map((x) => [x.tdid, x]));
-  // Spelform: bara turneringar och matcher i vald form
+  // Spelform: bara tävlingar och matcher i vald form
   const iForm = (tdid) => spelform === 'alla' || formAv(T[tdid]?.startpoang) === spelform;
   const turnRader = allaTurn.filter((r) => iForm(r.tdid));
   const matcher = allaMatcher.filter((m) => iForm(m.tdid));
@@ -157,7 +157,7 @@ async function rita(app, rubrik, allaTurn, allaMatcher, under, extra = '', huvud
   allaTurn.forEach((r) => { const f = formAv(T[r.tdid]?.startpoang); antal[f] = (antal[f] ?? 0) + 1; });
   const tnamn = (tdid) => { const t = T[tdid] ?? {}; return `${t.serie ?? t.titel ?? tdid}${t.omgang ? ` ${t.omgang}` : ''}`; };
 
-  // Per turnering: n01:s siffror kompletterade med rundstatistik ur matcherna
+  // Per tävling: n01:s siffror kompletterade med rundstatistik ur matcherna
   const perT = turnRader.map((r) => {
     const mm = matcher.filter((m) => m.tdid === r.tdid);
     const legsV = mm.reduce((s, m) => s + Number(m.legs_vunna_pilar ?? 0), 0);
@@ -175,7 +175,7 @@ async function rita(app, rubrik, allaTurn, allaMatcher, under, extra = '', huvud
   const basta = (lista, k, lagre = false) => lista.filter((x) => x[k] != null && Number(x[k]) > 0)
     .sort((a, b) => (lagre ? a[k] - b[k] : b[k] - a[k]))[0];
   const mlank = (m) => `#/match/${encodeURIComponent(m.mid)}`;
-  const tlank = (r) => `#/turnering/${encodeURIComponent(r.tdid)}`;
+  const tlank = (r) => `#/tavling/${encodeURIComponent(r.tdid)}`;
   const mtext = (m) => `mot ${esc(m.mot_namn ?? '?')}, ${esc(tnamn(m.tdid))} ${esc(m.datum ?? '')}`;
   const ttext = (r) => `${esc(tnamn(r.tdid))} ${esc(r.t.datum ?? '')}`;
   const rek = [
@@ -210,7 +210,7 @@ async function rita(app, rubrik, allaTurn, allaMatcher, under, extra = '', huvud
       <span class="muted">${n}</span><b>${v(x)}</b><small>${txt(x)}</small></a>`).join('')}</div>
     <h2>Utveckling</h2>
     <div class="filter" role="group" aria-label="Visa per">
-      <button type="button" class="chip" data-lage="turnering">Per tävling</button>
+      <button type="button" class="chip" data-lage="tavling">Per tävling</button>
       <button type="button" class="chip" data-lage="match">Per match</button>
     </div>
     <div id="grafer"></div>
@@ -221,9 +221,9 @@ async function rita(app, rubrik, allaTurn, allaMatcher, under, extra = '', huvud
     <p class="muted liten">Senaste först. Tryck på en rubrik för att sortera, och på resultatet för att se varje leg runda för runda.</p>
     <div class="rulla" id="matchlista"></div>${extra}`;
 
-  // Turneringarna – sorterbara
+  // Tävlingarna – sorterbara
   const tKol = [
-    ['datum', 'Datum', -1, (r) => r.t.datum ?? ''], ['turnering', 'Tävling', 1, (r) => tnamn(r.tdid)],
+    ['datum', 'Datum', -1, (r) => r.t.datum ?? ''], ['tavling', 'Tävling', 1, (r) => tnamn(r.tdid)],
     ['plac', 'Plac', 1, (r) => r.placering ?? null], ['matcher', 'Matcher', -1, (r) => (r.matcher ? r.vunna_matcher / r.matcher : null)],
     ['snitt', 'Snitt', -1, (r) => r.snitt], ['f9', 'F9', -1, (r) => r.snitt_f9], ['t180', '180', -1, (r) => r.t180 || null], ['ho', 'HO', -1, (r) => r.high_out],
   ];
@@ -248,7 +248,7 @@ async function rita(app, rubrik, allaTurn, allaMatcher, under, extra = '', huvud
   const mKol = [
     ['datum', 'Datum', -1, (m) => ms(m.datum, m.starttid)], ['resultat', 'Resultat', -1, (m) => (m.vann ? 100 : 0) + (m.legs_vunna ?? 0) - (m.legs_forlorade ?? 0)],
     ['mot', 'Mot', 1, (m) => m.mot_namn ?? ''], ['snitt', 'Snitt', -1, (m) => m.snitt], ['f9', 'F9', -1, (m) => m.snitt_f9],
-    ['ho', 'HO', -1, (m) => m.hogsta_utgang], ['turnering', 'Tävling', 1, (m) => tnamn(m.tdid)],
+    ['ho', 'HO', -1, (m) => m.hogsta_utgang], ['tavling', 'Tävling', 1, (m) => tnamn(m.tdid)],
   ];
   const ritaMatcher = () => {
     const sorterade = sortera(sorteradeMatcher, mKol, sortMatch);

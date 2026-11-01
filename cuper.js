@@ -1,5 +1,5 @@
 // Cuper: lista och poängtabell per cup med klubbens poängregler
-import { api, esc, spelarlank } from './lib.js?v=0.9.0';
+import { api, esc, spelarlank } from './lib.js?v=0.9.1';
 
 const KOL = [
   // nyckel, rubrik, förklaring, regel som avgör om kolumnen visas
@@ -84,7 +84,7 @@ export async function visaCup(app, id) {
     <div class="rulla"><table class="tabell">
       <thead><tr><th class="fast">Datum</th><th>Tävling</th><th>Del</th></tr></thead>
       <tbody>${turn.map((t) => `<tr><td class="fast">${esc(t.datum ?? '')}</td>
-        <td><a href="#/turnering/${encodeURIComponent(t.tdid)}">${esc(t.serie ?? t.titel)}${t.omgang ? ` ${t.omgang}` : ''}</a></td>
+        <td><a href="#/tavling/${encodeURIComponent(t.tdid)}">${esc(t.serie ?? t.titel)}${t.omgang ? ` ${t.omgang}` : ''}</a></td>
         <td>${t.roll === 'final' ? 'Finalspel' : 'Omgång'}</td></tr>`).join('')}</tbody></table></div>`;
   app.querySelector('#poang').addEventListener('click', (e) => {
     const b = e.target.closest('[data-sort]'); if (!b) return;

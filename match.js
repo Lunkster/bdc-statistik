@@ -1,5 +1,5 @@
 // Matchsida: resultat, statistik per spelare och varje leg runda för runda
-import { api, esc, fmt, spelarlank } from './lib.js?v=0.9.0';
+import { api, esc, fmt, spelarlank } from './lib.js?v=0.9.1';
 
 export async function visaMatch(app, mid) {
   const q = encodeURIComponent(mid);
@@ -37,7 +37,7 @@ export async function visaMatch(app, mid) {
   }).join('');
 
   app.innerHTML = `
-    <p><a href="#/turnering/${encodeURIComponent(a.tdid)}" class="tillbaka">← ${esc(t?.serie ?? t?.titel ?? 'Tävlingen')}${t?.omgang ? ` omg ${t.omgang}` : ''}</a></p>
+    <p><a href="#/tavling/${encodeURIComponent(a.tdid)}" class="tillbaka">← ${esc(t?.serie ?? t?.titel ?? 'Tävlingen')}${t?.omgang ? ` omg ${t.omgang}` : ''}</a></p>
     <h1>Match</h1>
     <p class="muted">${esc(t?.datum ?? '')} · ${fas}</p>
     <div class="kort matchhuvud">

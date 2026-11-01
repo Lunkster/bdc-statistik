@@ -1,6 +1,6 @@
-// Admin: hämtning, koppla namn (allmänt eller per turnering), spelarregister, slå ihop, ändringslogg
-import { api, skriv, rpc, funktion, esc, fmt, datumTid, arAdmin } from './lib.js?v=0.9.0';
-import { visaExport } from './export.js?v=0.9.0';
+// Admin: hämtning, koppla namn (allmänt eller per tävling), spelarregister, slå ihop, ändringslogg
+import { api, skriv, rpc, funktion, esc, fmt, datumTid, arAdmin } from './lib.js?v=0.9.1';
+import { visaExport } from './export.js?v=0.9.1';
 
 const flikar = [['', 'Översikt'], ['gora', 'Att göra'], ['namn', 'Koppla namn'], ['spelare', 'Spelarregister'], ['cuper', 'Cuper'], ['serien', 'Serien'], ['logg', 'Ändringslogg'], ['export', 'Export']];
 const meny = (aktiv) => `<div class="filter" role="navigation" aria-label="Admin">${flikar.map(([k, n]) =>
@@ -115,7 +115,7 @@ async function visaNamnKoppling(app, namn) {
   const snitt = {};
   for (const s of statistik) { const x = snitt[s.spelare_id] ?? { p: 0, d: 0, t: 0 }; x.p += s.poang ?? 0; x.d += s.pilar ?? 0; x.t++; snitt[s.spelare_id] = x; }
   const egetNamn = namn.trim().toLowerCase();
-  // Vilka kandidater var med i turneringen under ett annat namn (kan då inte vara samma person)
+  // Vilka kandidater var med i tävlingen under ett annat namn (kan då inte vara samma person)
   const medSamtidigt = (tdid) => delt.filter((d) => d.tdid === tdid && d.namn.trim().toLowerCase() !== egetNamn).map((d) => d.spelare_id);
 
   const kandHtml = kandIds.map((id) => {
@@ -128,7 +128,7 @@ async function visaNamnKoppling(app, namn) {
     const krock = medSamtidigt(r.tdid);
     const nu = r.spelare_id ? sp[r.spelare_id] : null;
     return `<tr data-tdid="${esc(r.tdid)}">
-      <td class="fast"><a href="#/turnering/${encodeURIComponent(r.tdid)}">${esc(r.datum ?? '')}</a></td>
+      <td class="fast"><a href="#/tavling/${encodeURIComponent(r.tdid)}">${esc(r.datum ?? '')}</a></td>
       <td>${esc(r.serie ?? '')}${r.omgang ? ` ${r.omgang}` : ''}</td>
       <td>${fmt(r.snitt, 1)}</td><td>${r.placering ?? '–'}</td>
       <td>${nu ? `${esc(nu.namn)} <small class="muted">${har ? 'bara här' : 'allmänt'}</small>` : '<span class="varning">okopplad</span>'}</td>
@@ -249,7 +249,7 @@ async function visaLogg(app) {
     <div class="rulla"><table class="tabell">
       <thead><tr><th class="fast">Tid</th><th>Händelse</th><th>Namn i n01</th><th>Gäller</th><th>Från</th><th>Till</th></tr></thead>
       <tbody>${logg.map((l) => `<tr><td class="fast">${datumTid(l.tid)}</td><td>${esc(l.handling)}</td><td>${esc(l.n01_namn ?? '')}</td>
-        <td>${l.tdid ? `<a href="#/turnering/${encodeURIComponent(l.tdid)}">en tävling</a>` : 'alla'}</td><td>${namn(l.fran_spelare)}</td><td>${namn(l.till_spelare)}</td></tr>`).join('')}</tbody>
+        <td>${l.tdid ? `<a href="#/tavling/${encodeURIComponent(l.tdid)}">en tävling</a>` : 'alla'}</td><td>${namn(l.fran_spelare)}</td><td>${namn(l.till_spelare)}</td></tr>`).join('')}</tbody>
     </table></div>`;
 }
 
@@ -276,7 +276,7 @@ async function visaCupLista(app) {
 async function visaCupAdmin(app, idText) {
   const ny = idText === 'ny';
   const id = ny ? null : Number(idText);
-  const [cupRad, turneringar, tt, valRader, spelare, manuell] = await Promise.all([
+  const [cupRad, tavlingar, tt, valRader, spelare, manuell] = await Promise.all([
     ny ? [] : api(`tavling?id=eq.${id}&select=*`),
     api('turnering?select=tdid,titel,datum,serie,omgang&order=datum.desc'),
     ny ? [] : api(`v_tavling_turnering?tavling_id=eq.${id}&select=tdid,roll,datum`),
@@ -288,12 +288,12 @@ async function visaCupAdmin(app, idText) {
   if (!ny && !cupRad.length) { app.innerHTML = '<p class="fel">Cupen finns inte.</p>'; return; }
   spelare.sort(sortSp);
   const sp = Object.fromEntries(spelare.map((s) => [s.id, s]));
-  const serier = [...new Set(turneringar.map((t) => t.serie).filter(Boolean))].sort((a, b) => a.localeCompare(b, 'sv'));
+  const serier = [...new Set(tavlingar.map((t) => t.serie).filter(Boolean))].sort((a, b) => a.localeCompare(b, 'sv'));
   const r = { ...STD, ...(c.regler ?? {}) };
   const iCup = new Map(tt.map((t) => [t.tdid, t.roll]));
   const valPa = new Map(valRader.map((v) => [v.tdid, v.roll]));
-  // Turneringar att visa: de som är med + uteslutna + övriga med samma serie
-  const visas = turneringar.filter((t) => iCup.has(t.tdid) || valPa.has(t.tdid) || (c.serie && t.serie === c.serie));
+  // Tävlingar att visa: de som är med + uteslutna + övriga med samma serie
+  const visas = tavlingar.filter((t) => iCup.has(t.tdid) || valPa.has(t.tdid) || (c.serie && t.serie === c.serie));
   const rollAv = (tdid) => valPa.get(tdid) === 'utesluten' ? 'utesluten' : iCup.get(tdid) ?? 'ingen';
 
   app.innerHTML = `
@@ -317,13 +317,13 @@ async function visaCupAdmin(app, idText) {
     ${ny ? '' : `
     <h2>Tävlingar</h2>
     <p class="muted liten">Med automatiskt: serien <b>${esc(c.serie ?? '–')}</b> mellan ${esc(c.fran ?? '…')} och ${esc(c.till ?? '…')}. Ändra rollen för att markera finalspel, utesluta en omgång eller ta med en tävling som inte följer regeln.</p>
-    <div class="formrad"><select id="lagg-till">${turneringar.filter((t) => !iCup.has(t.tdid)).map((t) => `<option value="${esc(t.tdid)}">${esc(t.datum ?? '')} ${esc(t.serie ?? t.titel)}${t.omgang ? ` ${t.omgang}` : ''}</option>`).join('')}</select>
+    <div class="formrad"><select id="lagg-till">${tavlingar.filter((t) => !iCup.has(t.tdid)).map((t) => `<option value="${esc(t.tdid)}">${esc(t.datum ?? '')} ${esc(t.serie ?? t.titel)}${t.omgang ? ` ${t.omgang}` : ''}</option>`).join('')}</select>
       <select id="lagg-roll"><option value="final">som finalspel</option><option value="omgang">som omgång</option></select>
       <button class="btn liten" id="lagg" type="button">Lägg till</button></div>
     <div class="rulla"><table class="tabell">
       <thead><tr><th class="fast">Datum</th><th>Tävling</th><th>Roll</th></tr></thead>
       <tbody>${visas.map((t) => `<tr data-tdid="${esc(t.tdid)}"><td class="fast">${esc(t.datum ?? '')}</td>
-        <td><a href="#/turnering/${encodeURIComponent(t.tdid)}">${esc(t.serie ?? t.titel)}${t.omgang ? ` ${t.omgang}` : ''}</a></td>
+        <td><a href="#/tavling/${encodeURIComponent(t.tdid)}">${esc(t.serie ?? t.titel)}${t.omgang ? ` ${t.omgang}` : ''}</a></td>
         <td><select class="roll">${[['omgang', 'Omgång'], ['final', 'Finalspel'], ['utesluten', 'Utesluten'], ['ingen', '– inte med –']].map(([v, n]) =>
           `<option value="${v}"${rollAv(t.tdid) === v ? ' selected' : ''}>${n}</option>`).join('')}</select></td></tr>`).join('')}</tbody></table></div>
     <h2>Bull-utgångar</h2>
@@ -352,7 +352,7 @@ async function visaCupAdmin(app, idText) {
   if (ny) return;
   const sattRoll = async (tdid, roll) => {
     const har = valPa.get(tdid);
-    const regelMatch = c.serie && turneringar.some((t) => t.tdid === tdid && t.serie === c.serie && (!c.fran || t.datum >= c.fran) && (!c.till || t.datum <= c.till));
+    const regelMatch = c.serie && tavlingar.some((t) => t.tdid === tdid && t.serie === c.serie && (!c.fran || t.datum >= c.fran) && (!c.till || t.datum <= c.till));
     const behovs = roll === 'ingen' ? (regelMatch ? 'utesluten' : null) : roll === 'omgang' && regelMatch ? null : roll;
     if (!behovs && har) await skriv('DELETE', `tavling_val?tavling_id=eq.${id}&tdid=eq.${encodeURIComponent(tdid)}`);
     else if (behovs && har) await skriv('PATCH', `tavling_val?tavling_id=eq.${id}&tdid=eq.${encodeURIComponent(tdid)}`, { roll: behovs });

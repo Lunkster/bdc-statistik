@@ -1,5 +1,5 @@
-// Turneringssida: samma statistik som n01:s statistiksida, grupper och slutspel
-import { api, esc, fmt, heltal, spelarlank } from './lib.js?v=0.9.0';
+// Tävlingssida: samma statistik som n01:s statistiksida, grupper och slutspel
+import { api, esc, fmt, heltal, spelarlank } from './lib.js?v=0.9.1';
 
 const KOLUMNER = [
   // nyckel, rubrik, förklaring, sortering (1 = högst först, -1 = lägst först), format
@@ -16,7 +16,7 @@ const KOLUMNER = [
   ['basta_leg', 'Bästa', 'Bästa leg (antal pilar)', -1, (v) => v ?? '–'],
 ];
 
-export async function visaTurnering(app, tdid) {
+export async function visaTavling(app, tdid) {
   const q = encodeURIComponent(tdid);
   const [[t], [rad], stat, matcher] = await Promise.all([
     api(`v_turnering?tdid=eq.${q}&select=*`),
@@ -24,7 +24,7 @@ export async function visaTurnering(app, tdid) {
     api(`v_turnering_statistik?tdid=eq.${q}&select=*`),
     api(`v_match?tdid=eq.${q}&select=*&order=ttype,rond,t_no`),
   ]);
-  // Cuper som turneringen ingår i (omgång eller finalspel)
+  // Cuper som tävlingen ingår i (omgång eller finalspel)
   const iCup = await api(`v_tavling_turnering?tdid=eq.${q}&select=tavling_id,roll`).catch(() => []);
   const cuper = iCup.length ? await api(`tavling?id=in.(${iCup.map((c) => c.tavling_id).join(',')})&select=id,namn`) : [];
   const cupLankar = iCup.map((c) => { const cup = cuper.find((x) => x.id === c.tavling_id);

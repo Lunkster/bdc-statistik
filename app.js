@@ -1,15 +1,15 @@
 // Router och inloggning
-import { login, logout, isLoggedIn, arAdmin, esc, laddaBilder } from './lib.js?v=0.9.0';
-import { visaTurneringar } from './turneringar.js?v=0.9.0';
-import { visaTurnering } from './turnering.js?v=0.9.0';
-import { visaSpelare, visaNamn, visaSpelarlista } from './spelare.js?v=0.9.0';
-import { visaAdmin } from './admin.js?v=0.9.0';
-import { visaMatch } from './match.js?v=0.9.0';
-import { visaNyheter } from './nyheter.js?v=0.9.0';
-import { visaCuper, visaCup } from './cuper.js?v=0.9.0';
-import { visaSerien, visaLagmatch, visaDsMatch } from './serien.js?v=0.9.0';
-import { visaRekord } from './rekord.js?v=0.9.0';
-import { visaKarusellSida } from './karusell.js?v=0.9.0';
+import { login, logout, isLoggedIn, arAdmin, esc, laddaBilder } from './lib.js?v=0.9.1';
+import { visaTavlingar } from './tavlingar.js?v=0.9.1';
+import { visaTavling } from './tavling.js?v=0.9.1';
+import { visaSpelare, visaNamn, visaSpelarlista } from './spelare.js?v=0.9.1';
+import { visaAdmin } from './admin.js?v=0.9.1';
+import { visaMatch } from './match.js?v=0.9.1';
+import { visaNyheter } from './nyheter.js?v=0.9.1';
+import { visaCuper, visaCup } from './cuper.js?v=0.9.1';
+import { visaSerien, visaLagmatch, visaDsMatch } from './serien.js?v=0.9.1';
+import { visaRekord } from './rekord.js?v=0.9.1';
+import { visaKarusellSida } from './karusell.js?v=0.9.1';
 
 const app = document.getElementById('app');
 
@@ -17,7 +17,7 @@ function visaLogin(meddelande = '') {
   document.body.classList.add('utloggad');
   app.innerHTML = `
     <form class="kort login" id="login">
-      <img src="emblem.png?v=0.9.0" alt="Dart Club Bankeryd" class="emblem">
+      <img src="emblem.png?v=0.9.1" alt="Dart Club Bankeryd" class="emblem">
       <h1>Klubbstatistik</h1>
       <label>Klubbkod <input type="password" name="kod" autocomplete="current-password" required></label>
       <label class="rad"><input type="checkbox" name="admin"> Logga in som admin</label>
@@ -37,7 +37,7 @@ async function route() {
   if (!isLoggedIn()) return visaLogin();
   document.body.classList.remove('utloggad', 'tv');
   const [, vy, arg, ...resten] = (location.hash || '#/').split('/');
-  const flik = { turnering: 'turneringar', match: 'turneringar', namn: 'spelare', cup: 'cuper', karusell: 'turneringar', lagmatch: 'serien', dsmatch: 'serien', '': 'turneringar' }[vy ?? ''] ?? vy;
+  const flik = { tavling: 'tavlingar', turnering: 'tavlingar', match: 'tavlingar', namn: 'spelare', cup: 'cuper', karusell: 'tavlingar', lagmatch: 'serien', dsmatch: 'serien', '': 'tavlingar' }[vy ?? ''] ?? vy;
   document.querySelectorAll('[data-route]').forEach((a) => a.classList.toggle('aktiv', a.dataset.route === flik));
   document.getElementById('adminlank').hidden = !arAdmin();
   document.getElementById('loggaut').hidden = false;
@@ -46,7 +46,8 @@ async function route() {
   try {
     if (vy === 'loggaut') { logout(); location.hash = '#/'; return visaLogin(); }
     await laddaBilder().catch(() => {});   // porträtt (cachas en knapp timme)
-    if (vy === 'turnering') return await visaTurnering(app, decodeURIComponent(arg));
+    if (vy === 'turnering') { location.replace(`#/tavling/${arg}`); return; }   // gamla länkar (före v0.9.1)
+    if (vy === 'tavling') return await visaTavling(app, decodeURIComponent(arg));
     if (vy === 'spelare' && arg) return await visaSpelare(app, Number(arg));
     if (vy === 'spelare') return await visaSpelarlista(app);
     if (vy === 'cuper') return await visaCuper(app);
@@ -60,7 +61,7 @@ async function route() {
     if (vy === 'match') return await visaMatch(app, decodeURIComponent(arg));
     if (vy === 'namn') return await visaNamn(app, decodeURIComponent(arg));
     if (vy === 'admin') return await visaAdmin(app, arg, resten.map(decodeURIComponent).join('/'));
-    return await visaTurneringar(app);
+    return await visaTavlingar(app);
   } catch (e) {
     if (e.status === 401) return visaLogin('Logga in igen.');
     app.innerHTML = `<p class="fel">Något gick fel: ${esc(e.message)}</p>`;

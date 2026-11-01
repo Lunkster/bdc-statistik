@@ -1,10 +1,10 @@
-// Turneringslistan: alla turneringar, nyast först, filter på serie
-import { api, esc } from './lib.js?v=0.9.0';
-import { visaKarusell } from './karusell.js?v=0.9.0';
+// Tävlingslistan: alla tävlingar, nyast först, filter på serie
+import { api, esc } from './lib.js?v=0.9.1';
+import { visaKarusell } from './karusell.js?v=0.9.1';
 
 let valdSerie = '';
 
-export async function visaTurneringar(app) {
+export async function visaTavlingar(app) {
   const rader = await api('v_turnering?select=tdid,titel,datum,serie,omgang,deltagare,matcher,vinnare,vinnare_id&order=datum.desc,tdid.desc');
   const serier = [...new Set(rader.map((r) => r.serie).filter(Boolean))].sort((a, b) => a.localeCompare(b, 'sv'));
 
@@ -17,7 +17,7 @@ export async function visaTurneringar(app) {
       manad = m;
       const namn = r.serie ? `${esc(r.serie)}${r.omgang ? ` <span class="muted">omg ${r.omgang}</span>` : ''}` : esc(r.titel);
       return `${rubrik}
-        <a class="turnrad" href="#/turnering/${encodeURIComponent(r.tdid)}">
+        <a class="tavlingsrad" href="#/tavling/${encodeURIComponent(r.tdid)}">
           <span class="datum">${esc(r.datum ?? '')}</span>
           <span class="namn">${namn}</span>
           <span class="muted antal">${r.deltagare} spelare</span>
