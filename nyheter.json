@@ -1,5 +1,11 @@
 [
  {
+  "datum": "2026-11-02",
+  "punkter": [
+   "Två nya mått på utgångarna, i tävlingens statistik (Detaljer i mobilen) och under Detaljer på matchsidan: Utgång-% – hur stor del av rundorna från 170 eller mindre som slutade med utgång – och Checkout-%, vår uppskattning av hur stor del av pilarna mot dubbel som satt (n01 uppskattar på sitt eget sätt, så den kan skilja lite) (v0.9.6)"
+  ]
+ },
+ {
   "datum": "2026-11-01",
   "punkter": [
    "Tävlingens statistiktabell har fått fler kolumner som hos n01: vinst-% i matcher och legs, legsskillnad, sämsta leg, snitt per pil, 100+ utgångar, Keep och Break, Second och Break legs, totala poäng och pilar, grupp och hur långt man nådde. På dator syns allt direkt; i mobilen trycker du på Detaljer (v0.9.5)",

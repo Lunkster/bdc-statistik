@@ -1,6 +1,7 @@
 // Matchprotokoll som n01 (v0.9.3, önskemål Henrik 2026-11-01): statistik med Detaljer att fälla ut
 // och varje leg uppifrån och ned (Poäng | Kvar | pilar | Poäng | Kvar). Används av match.js och serien.js.
-import { esc, fmt } from './lib.js?v=0.9.5';
+import { esc, fmt } from './lib.js?v=0.9.6';
+import { utgangslage, checkoutUppskattad } from './utgang.js?v=0.9.6';
 
 const NYCKEL = 'bdc-detaljer';
 const intervall = (k, fran, till) => k.filter((x) => x.poang >= fran && x.poang <= till).length;
@@ -26,6 +27,8 @@ export function rakna(kast, legs, s, legsVunna) {
     basta: vunna.length ? Math.min(...vunna) : null,
     pilarPerLeg: vunna.length ? vunna.reduce((t, x) => t + x, 0) / vunna.length : null,
     hogsta: Math.max(...k.map((x) => x.poang)),
+    utgLagen: k.filter((x) => utgangslage(x.kvar + x.poang)).length, utgangar: ut.length,
+    co: checkoutUppskattad(k.map((x) => [x.kvar + x.poang, x.kvar, x.pilar])).procent,
   };
 }
 
@@ -40,6 +43,8 @@ const RADER = [
   ['180', (s) => s.t180, ''],
   ['Högsta utgång', (s) => s.utgang ?? '–', ''],
   ['100+ utgångar', (s) => s.ut100, 'd'],
+  ['Utgång-%', (s) => (s.utgLagen ? `${fmt((100 * s.utgangar) / s.utgLagen, 1)} % <small class="muted">${s.utgangar}/${s.utgLagen}</small>` : '–'), 'd'],
+  ['Checkout-% (uppsk.)', (s) => (s.co != null ? `${fmt(s.co, 1)} %` : '–'), 'd'],
   ['Bästa leg', (s) => (s.basta != null ? `${s.basta} pilar` : '–'), ''],
   ['Pilar per vunnet leg', (s) => fmt(s.pilarPerLeg, 1), 'd'],
   ['Högsta runda', (s) => s.hogsta ?? '–', 'd'],

@@ -1,5 +1,6 @@
 // Tävlingssida: samma statistik som n01:s statistiksida, grupper, slutspel och matcherna i tidsordning
-import { api, esc, fmt, heltal, spelarlank, datumTid } from './lib.js?v=0.9.5';
+import { api, esc, fmt, heltal, spelarlank, datumTid } from './lib.js?v=0.9.6';
+import { checkoutUppskattad, besokUrN01 } from './utgang.js?v=0.9.6';
 
 const pct = (v) => (v == null ? '–' : `${fmt(v, 1)} %`);
 const OMG = { '-1': 'F', '-2': 'SF', '-3': 'KF', '-4': 'ÅF' };
@@ -23,6 +24,8 @@ const KOLUMNER = [
   ['samsta_leg', 'Sämsta', 'Sämsta vunna leg (antal pilar)', -1, (v) => v ?? '–', 'd'],
   ['snitt1', '1 pil', 'Snitt per pil', 1, (v) => fmt(v, 2), 'd'],
   ['ut100', '100+ ut', 'Utgångar på 100 eller mer', 1, heltal, 'd'],
+  ['utg', 'Utgång-%', 'Utgångar / utgångslägen: andel rundor som började på 170 eller mindre (utom 159, 162, 163, 165, 166, 168, 169) och slutade med utgång', 1, pct, 'd'],
+  ['co', 'Checkout-%*', 'Uppskattad: utgångar / uppskattat antal pilar mot dubbel. Vår egen uppskattning – n01 räknar med en annan modell', 1, pct, 'd'],
   ['keep', 'Keep', 'Andel vunna legs där spelaren började', 1, pct, 'd'],
   ['brk', 'Break', 'Andel vunna legs där motståndaren började', 1, pct, 'd'],
   ['second', 'Second', 'Legs där motståndaren började', 1, heltal, 'd'],
@@ -36,13 +39,15 @@ const KOLUMNER = [
 const statOppen = () => { try { return localStorage.getItem('bdc-statdetaljer') === '1'; } catch { return false; } };
 
 // Fält ur n01:s stats_list (per tpid) som vyn inte har
-function berika(s, n) {
+function berika(s, n, u) {
   const kvot = (a, b) => (b ? (100 * a) / b : null);
   s.vinst_m = kvot(s.vunna_matcher, s.matcher);
   s.vinst_l = kvot(s.vunna_legs, s.legs);
   s.legs_diff = s.legs != null ? 2 * s.vunna_legs - s.legs : null;
   s.snitt1 = s.snitt != null ? s.snitt / 3 : null;
+  if (u) { s.utg = kvot(u.utgangar, u.utgangslagen); s.utg_text = `${u.utgangar}/${u.utgangslagen}`; }
   if (!n) return;
+  s.co = n.co ? checkoutUppskattad(besokUrN01(n.co)).procent : null;
   s.ut100 = n.highOutCount ?? null;
   s.second = n.a_b ?? null; s.breaklegs = n.w_b ?? null;
   s.brk = kvot(n.w_b, n.a_b);
@@ -60,7 +65,11 @@ export async function visaTavling(app, tdid) {
     api(`v_turnering_statistik?tdid=eq.${q}&select=*`),
     api(`v_match?tdid=eq.${q}&select=*&order=ttype,rond,t_no`),
   ]);
-  const [n01stat] = await api(`turnering_statistik?tdid=eq.${q}&typ=eq.stats_list&select=data`).catch(() => []);
+  const [[n01stat], utg] = await Promise.all([
+    api(`turnering_statistik?tdid=eq.${q}&typ=eq.stats_list&select=data`).catch(() => []),
+    api(`v_turnering_utgang?tdid=eq.${q}&select=tpid,utgangar,utgangslagen`).catch(() => []),   // finns efter migration 21
+  ]);
+  const utgPer = Object.fromEntries(utg.map((u) => [u.tpid, u]));
   // Cuper som tävlingen ingår i (omgång eller finalspel)
   const iCup = await api(`v_tavling_turnering?tdid=eq.${q}&select=tavling_id,roll`).catch(() => []);
   const cuper = iCup.length ? await api(`tavling?id=in.(${iCup.map((c) => c.tavling_id).join(',')})&select=id,namn`) : [];
@@ -68,7 +77,7 @@ export async function visaTavling(app, tdid) {
     return cup ? `<a class="chip cuplank" href="#/cup/${cup.id}">🏆 ${esc(cup.namn)}${c.roll === 'final' ? ' – finalspel' : ''} →</a>` : ''; }).join('');
   if (!t) { app.innerHTML = '<p class="fel">Tävlingen finns inte.</p>'; return; }
 
-  stat.forEach((s) => berika(s, n01stat?.data?.[s.tpid]));
+  stat.forEach((s) => berika(s, n01stat?.data?.[s.tpid], utgPer[s.tpid]));
   const perTpid = Object.fromEntries(stat.map((s) => [s.tpid, s]));
   let sortering = { nyckel: 'placering', riktning: -1 };
 
@@ -86,7 +95,7 @@ export async function visaTavling(app, tdid) {
           `<th${d ? ' class="bara-d"' : ''}><button type="button" data-sort="${n}" title="${esc(f)}" class="${n === sortering.nyckel ? 'sorterad' : ''}">${esc(r)}</button></th>`).join('')}</tr></thead>
         <tbody>${rader.map((s) => `<tr>
           <td class="fast">${spelarlank(s.namn ?? s.tpid, s.spelare_id)}</td>
-          ${KOLUMNER.map(([n, , , , f, d]) => `<td${d ? ' class="bara-d"' : ''}>${n === 'matcher_vs' ? `${s.vunna_matcher}–${s.matcher}` : n === 'legs_vs' ? `${s.vunna_legs}–${s.legs}` : n === 'omg' ? esc(s.omg_text) : f(s[n])}</td>`).join('')}
+          ${KOLUMNER.map(([n, , , , f, d]) => `<td${d ? ' class="bara-d"' : ''}>${n === 'matcher_vs' ? `${s.vunna_matcher}–${s.matcher}` : n === 'legs_vs' ? `${s.vunna_legs}–${s.legs}` : n === 'omg' ? esc(s.omg_text) : n === 'utg' && s.utg != null ? `<span title="${esc(s.utg_text)}">${f(s[n])}</span>` : f(s[n])}</td>`).join('')}
         </tr>`).join('')}</tbody>
       </table>`;
   };
@@ -112,6 +121,7 @@ export async function visaTavling(app, tdid) {
     </div>
     <h2>Statistik</h2>
     <p class="muted liten">Samma siffror som n01:s statistiksida. Tryck på en rubrik för att sortera.</p>
+    <p class="muted liten">* Checkout-% är vår uppskattning av andelen pilar mot dubbel som satt – n01 uppskattar på sitt eget sätt, så siffrorna kan skilja. Utgång-% är exakt: andelen rundor från 170 eller mindre som slutade med utgång.</p>
     <div class="statbox${statOppen() ? ' oppen' : ''}">
       <button type="button" class="detaljer-knapp stat-detaljer" aria-expanded="${statOppen()}">Detaljer <span class="pil">▾</span> <small>Vinst-%, Keep/Break, poäng och pilar m.m.</small></button>
       <div class="rulla" id="stat"></div>

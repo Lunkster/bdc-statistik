@@ -89,6 +89,7 @@ await page.route('https://xkfjbrkrtetkbjugresq.supabase.co/**', async (route) =>
   if (tabell === 'leg') return svara(F.leg);
   if (tabell === 'kast') return svara(F.kast);
   if (tabell === 'turnering_statistik') return svara(F.n01stat);
+  if (tabell === 'v_turnering_utgang') return svara(F.utgang);
   if (tabell === 'spelare' && q.get('bild')) return svara([{ id: 47, bild: '47.jpg?v=1' }]);
   if (tabell === 'spelare') return svara(F.spelare);
   if (tabell === 'alias') return svara(q.get('n01_namn') ? [] : F.alias);
@@ -169,6 +170,8 @@ await page.click('.stat-detaljer');
 if (!(await page.locator('#stat th:has-text("Keep")').isVisible())) fel.push('statistik: Detaljer visar inte Keep');
 const adaRad = await page.locator('#stat tbody tr:has-text("Ada")').innerText();
 if (!adaRad.includes('88,9 %') || !adaRad.includes('75,0 %') || !/\bF\b/.test(adaRad)) fel.push('statistik: Keep/Break/Omg för Ada: ' + adaRad.replace(/\s+/g, ' '));
+if (!adaRad.includes('35,0 %')) fel.push('statistik: Utgång-% för Ada ska vara 35,0 %');
+if (!(await page.locator('#stat th:has-text("Checkout-%")').isVisible())) fel.push('statistik: Checkout-% saknas');
 await kontroll('2a-statistik-detaljer');
 await page.click('.tidslinje summary');
 if ((await page.locator('.tl-rad').count()) !== 4) fel.push('tidslinje: ska visa 4 matcher');
@@ -225,6 +228,7 @@ if (await page.locator('.matchstat tr:has-text("60+")').isVisible()) fel.push('6
 await page.click('.detaljer-knapp');
 if (!(await page.locator('.matchstat tr:has-text("60+")').isVisible())) fel.push('Detaljer fälls inte ut');
 if (!(await page.locator('.matchstat tr:has-text("120+")').isVisible())) fel.push('120+ saknas under Detaljer');
+if (!(await page.locator('.matchstat tr:has-text("Utgång-%")').innerText()).includes('3/9')) fel.push('matchsidan: Utgång-% ska visa 3/9');
 await kontroll('3c-match');
 await page.click('.detaljer-knapp');
 await page.goto(B + '#/namn/Ada');
