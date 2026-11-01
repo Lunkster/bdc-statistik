@@ -204,6 +204,8 @@ erDiagram
 | `v_tavling_turnering` | En cups turneringar: regeln (serie + datum) plus tillagda, minus uteslutna; roll omgång eller final |
 | `v_cup_rad` | Per cup, omgång och deltagare: placering, vunna matcher, 180, 171, hög utgång (≥ cupens gräns), kortset (≤ cupens pilar) |
 | `v_cup_poang` | Poängtabellen per cup och person med cupens poängregler, inklusive inmatade bull-utgångar |
+| `v_rekord_leg` | En rad per leg och spelare i klubbens turneringar: startpoäng, pilar, snitt, vunnet med pilar, utgång, 180 – klubbrekorden och karusellen |
+| `intern.leg_kast` | Materialiserad vy (schemat `intern`): rundorna summerade per leg och sida, med sidans startpoäng. Räknas om av `uppdatera_statistik()` |
 | `intern.match_kast` | Materialiserad vy (schemat `intern`, inte i API:et): rundorna summerade per match och sida. Räknas om av `public.uppdatera_statistik()` när hämtningen fått nya matcher |
 | `v_ds_tabell` | Distriktsserien: serietabell per division (placering, spelade, V/O/F, +/−, poäng), Bankeryds lag markerade |
 | `v_ds_lagmatch` | Distriktsserien: lagmatcher med lagnamn, resultat och antal hämtade delmatcher |

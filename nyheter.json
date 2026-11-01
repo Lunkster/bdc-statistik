@@ -2,6 +2,8 @@
  {
   "datum": "2026-11-01",
   "punkter": [
+   "Ny flik Rekord: klubbrekorden på 501 – bästa leg, högsta utgång, flest 180:or och högsta snitt i en match och en turnering, topp 10 i varje (v0.8.0)",
+   "Startsidan har fått en karusell med topplistorna i de pågående cuperna, distriktsseriens tabeller och klubbrekorden. Tryck på Helskärm för att visa den på en skärm i klubblokalen (v0.8.0)",
    "På spelarsidan går tabellerna Turneringar och Matcher att sortera – tryck på en rubrik (v0.7.1)",
    "Porträtt: lägg upp en bild på en spelare överst på spelarsidan (Lägg till bild – i mobilen går det att ta ett foto direkt). Bilden syns som en liten rund ikon vid namnet i alla tabeller (v0.7.0)",
    "Spelarsidan och spelarlistan kan visa statistiken per spelform: 501 (torsdagar) eller 301 och handikapp (söndagar). Då blir bästa leg, pilar per leg och rekorden rättvisa att jämföra (v0.7.0)",

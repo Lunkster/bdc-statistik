@@ -268,3 +268,32 @@ a.lagmatch:hover { text-decoration: none; border-color: var(--rosa); }
 .portratt .tom { display: grid; place-items: center; color: var(--dampad); font-size: 2.5rem; font-weight: 800; }
 .portratt .knappar { display: flex; flex-direction: column; gap: .4rem; align-items: flex-start; }
 .portratt input[type=file] { display: none; }
+
+/* Karusell och rekord (v0.8.0) */
+.karusell { margin: 0 0 1.2rem; }
+.karusell .spar { display: flex; overflow-x: auto; scroll-snap-type: x mandatory; scrollbar-width: none; gap: 0; border-radius: var(--radie); }
+.karusell .spar::-webkit-scrollbar { display: none; }
+.karusell .bild { flex: 0 0 100%; scroll-snap-align: start; background: var(--yta); border: 1px solid var(--linje); border-radius: var(--radie); padding: .8rem 1rem; box-sizing: border-box; min-height: 14rem; }
+.karusell h2 { margin: 0; font-size: 1.05rem; }
+.karusell h2 a { color: var(--rosa); }
+.karusell ol.topp { list-style: none; margin: .5rem 0 0; padding: 0; counter-reset: plats; }
+.karusell ol.topp li { counter-increment: plats; display: grid; grid-template-columns: 1.6rem 1fr auto auto; gap: .5rem; align-items: center; padding: .25rem 0; border-bottom: 1px solid var(--linje); }
+.karusell ol.topp li::before { content: counter(plats); color: var(--dampad); font-weight: 700; }
+.karusell ol.topp li.kval b, .karusell ol.topp li.vart span { color: var(--mint); }
+.karusell ol.topp li.vart { background: color-mix(in srgb, var(--mint) 10%, transparent); }
+.karusell ol.topp li small { color: var(--dampad); }
+.karusell ol.rekord li { grid-template-columns: 1.6rem 1fr auto; }
+.karusell .prickar { display: flex; gap: .4rem; justify-content: center; align-items: center; margin-top: .5rem; }
+.karusell .prick { width: .6rem; height: .6rem; border-radius: 50%; border: 0; padding: 0; background: var(--linje); cursor: pointer; }
+.karusell .prick.vald { background: var(--rosa); }
+.karusell .prickar a { margin-left: .8rem; }
+body.tv .topbar, body.tv .foot { display: none; }
+.karusell.helskarm .bild { min-height: 80vh; font-size: 1.6rem; padding: 1.5rem 2rem; }
+.karusell.helskarm h2 { font-size: 2.2rem; }
+.karusell.helskarm ol.topp li { grid-template-columns: 3rem 1fr auto auto; padding: .5rem 0; }
+.rekordsida { display: grid; grid-template-columns: repeat(auto-fill, minmax(17rem, 1fr)); gap: .8rem; }
+.rekordlista h2 { margin-top: 0; }
+.rekordlista ol { margin: .3rem 0 0; padding-left: 1.4rem; }
+.rekordlista li { padding: .25rem 0; border-bottom: 1px solid var(--linje); }
+.rekordlista .varde { color: var(--rosa); }
+@media (max-width: 420px) { .tabs { gap: .1rem; } .tabs a { padding: .3rem .35rem; font-size: .8rem; } .tabs a.info { width: 1.6rem; height: 1.6rem; } }

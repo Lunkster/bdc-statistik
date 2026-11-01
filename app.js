@@ -1,13 +1,15 @@
 // Router och inloggning
-import { login, logout, isLoggedIn, arAdmin, esc, laddaBilder } from './lib.js?v=0.7.1';
-import { visaTurneringar } from './turneringar.js?v=0.7.1';
-import { visaTurnering } from './turnering.js?v=0.7.1';
-import { visaSpelare, visaNamn, visaSpelarlista } from './spelare.js?v=0.7.1';
-import { visaAdmin } from './admin.js?v=0.7.1';
-import { visaMatch } from './match.js?v=0.7.1';
-import { visaNyheter } from './nyheter.js?v=0.7.1';
-import { visaCuper, visaCup } from './cuper.js?v=0.7.1';
-import { visaSerien, visaLagmatch, visaDsMatch } from './serien.js?v=0.7.1';
+import { login, logout, isLoggedIn, arAdmin, esc, laddaBilder } from './lib.js?v=0.8.0';
+import { visaTurneringar } from './turneringar.js?v=0.8.0';
+import { visaTurnering } from './turnering.js?v=0.8.0';
+import { visaSpelare, visaNamn, visaSpelarlista } from './spelare.js?v=0.8.0';
+import { visaAdmin } from './admin.js?v=0.8.0';
+import { visaMatch } from './match.js?v=0.8.0';
+import { visaNyheter } from './nyheter.js?v=0.8.0';
+import { visaCuper, visaCup } from './cuper.js?v=0.8.0';
+import { visaSerien, visaLagmatch, visaDsMatch } from './serien.js?v=0.8.0';
+import { visaRekord } from './rekord.js?v=0.8.0';
+import { visaKarusellSida } from './karusell.js?v=0.8.0';
 
 const app = document.getElementById('app');
 
@@ -15,7 +17,7 @@ function visaLogin(meddelande = '') {
   document.body.classList.add('utloggad');
   app.innerHTML = `
     <form class="kort login" id="login">
-      <img src="emblem.png?v=0.7.1" alt="Dart Club Bankeryd" class="emblem">
+      <img src="emblem.png?v=0.8.0" alt="Dart Club Bankeryd" class="emblem">
       <h1>Klubbstatistik</h1>
       <label>Klubbkod <input type="password" name="kod" autocomplete="current-password" required></label>
       <label class="rad"><input type="checkbox" name="admin"> Logga in som admin</label>
@@ -33,9 +35,9 @@ function visaLogin(meddelande = '') {
 
 async function route() {
   if (!isLoggedIn()) return visaLogin();
-  document.body.classList.remove('utloggad');
+  document.body.classList.remove('utloggad', 'tv');
   const [, vy, arg, ...resten] = (location.hash || '#/').split('/');
-  const flik = { turnering: 'turneringar', match: 'turneringar', namn: 'spelare', cup: 'cuper', lagmatch: 'serien', dsmatch: 'serien', '': 'turneringar' }[vy ?? ''] ?? vy;
+  const flik = { turnering: 'turneringar', match: 'turneringar', namn: 'spelare', cup: 'cuper', karusell: 'turneringar', lagmatch: 'serien', dsmatch: 'serien', '': 'turneringar' }[vy ?? ''] ?? vy;
   document.querySelectorAll('[data-route]').forEach((a) => a.classList.toggle('aktiv', a.dataset.route === flik));
   document.getElementById('adminlank').hidden = !arAdmin();
   document.getElementById('loggaut').hidden = false;
@@ -52,6 +54,8 @@ async function route() {
     if (vy === 'serien') return await visaSerien(app, arg ? decodeURIComponent(arg) : null);
     if (vy === 'lagmatch') return await visaLagmatch(app, decodeURIComponent(arg), decodeURIComponent(resten[0] ?? ''));
     if (vy === 'dsmatch') return await visaDsMatch(app, decodeURIComponent(arg));
+    if (vy === 'rekord') return await visaRekord(app);
+    if (vy === 'karusell') return await visaKarusellSida(app);
     if (vy === 'nyheter') return await visaNyheter(app);
     if (vy === 'match') return await visaMatch(app, decodeURIComponent(arg));
     if (vy === 'namn') return await visaNamn(app, decodeURIComponent(arg));

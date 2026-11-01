@@ -1,5 +1,6 @@
 // Turneringslistan: alla turneringar, nyast först, filter på serie
-import { api, esc } from './lib.js?v=0.7.1';
+import { api, esc } from './lib.js?v=0.8.0';
+import { visaKarusell } from './karusell.js?v=0.8.0';
 
 let valdSerie = '';
 
@@ -27,6 +28,7 @@ export async function visaTurneringar(app) {
   };
 
   app.innerHTML = `
+    <div id="karusell"></div>
     <h1>Turneringar</h1>
     <p class="muted">${rader.length} turneringar sedan ${esc(rader.at(-1)?.datum ?? '')} – hämtas från n01 varje torsdag och söndag kl. 23:00.</p>
     <div class="filter" role="group" aria-label="Serie">
@@ -40,4 +42,5 @@ export async function visaTurneringar(app) {
     valdSerie = b.dataset.serie; markera(); ritaLista();
   });
   markera(); ritaLista();
+  visaKarusell(app.querySelector('#karusell')).catch(() => {});
 }

@@ -55,7 +55,9 @@ await page.route('https://xkfjbrkrtetkbjugresq.supabase.co/**', async (route) =>
   if (tabell === 'ds_division') return svara(F.ds_division);
   if (tabell === 'ds_lag') return svara(F.ds_lag);
   if (tabell === 'ds_alias') return svara([]);
-  if (tabell === 'v_ds_tabell') return svara(F.ds_tabell.filter((r) => `eq.${r.tdid}` === q.get('tdid')));
+  if (tabell === 'v_ds_tabell') return svara(F.ds_tabell.filter((r) => `eq.${r.tdid}` === q.get('tdid') || (q.get('tdid') ?? '').includes(`"${r.tdid}"`)));
+  if (tabell === 'v_rekord_leg') return svara(q.get('utgang') ? [{ mid: 'm00', tdid: 't_nRTA_1280', datum: '2026-10-29', namn: 'Dag', spelare_id: 47, mot_namn: 'Bo', utgang: 121 }]
+    : [{ mid: 'm00', tdid: 't_nRTA_1280', datum: '2026-10-29', namn: 'Dag', spelare_id: 47, mot_namn: 'Bo', pilar: 15, snitt: 100.2 }, { mid: 'm01', tdid: 't_nRTA_1280', datum: '2026-10-29', namn: 'Bo', spelare_id: null, mot_namn: 'Dag', pilar: 17, snitt: 88.41 }]);
   if (tabell === 'v_ds_lagmatch') return svara(F.ds_lagmatch.filter((r) => `eq.${r.tdid}` === q.get('tdid') && (!q.get('nyckel') || `eq.${r.nyckel}` === q.get('nyckel'))));
   if (tabell === 'v_ds_spelare') {
     if (q.get('spelare_id') === 'is.null') return svara(F.ds_spelare.filter((r) => !r.spelare_id));
@@ -109,10 +111,27 @@ await page.waitForSelector('.fel:text("Fel kod.")');
 await page.fill('input[name=kod]', 'rattkod'); await page.click('button.btn');
 await page.waitForSelector('.turnrad');
 if (await page.locator('#adminlank').isVisible()) fel.push('medlem ser adminlänken');
+await page.waitForSelector('.karusell .bild');
+if ((await page.locator('.karusell .bild').count()) < 3) fel.push('karusell: för få bilder ' + await page.locator('.karusell .bild').count());
+if ((await page.locator('.karusell .bild li.vart').count()) !== 1) fel.push('karusell: Bankeryd markeras inte i serietabellen');
+await page.click('.karusell .prick >> nth=1'); await page.waitForTimeout(600);
+if (!(await page.locator('.karusell .prick >> nth=1').getAttribute('class')).includes('vald')) fel.push('karusell: prickarna byter inte bild');
+await page.click('.karusell .prick >> nth=0'); await page.waitForTimeout(600);
 await kontroll('1-turneringar');
 await page.click('.chip[data-serie="Söndagscup"]');
 if ((await page.locator('.turnrad').count()) !== 1) fel.push('filter fungerar inte');
 await page.click('.chip[data-serie=""]');
+// 2b. Rekord och helskärmskarusell
+await page.click('a[data-route="rekord"]'); await page.waitForSelector('.rekordlista');
+if ((await page.locator('.rekordlista').count()) !== 7) fel.push('rekord: antal listor ' + await page.locator('.rekordlista').count());
+if (!(await page.locator('.rekordlista >> nth=0').innerText()).includes('15 pilar')) fel.push('rekord: bästa leg');
+if (!(await page.locator('.rekordsida').innerText()).includes('100,20')) fel.push('rekord: decimalkomma');
+await kontroll('2b-rekord');
+await page.goto(B + '#/karusell'); await page.waitForSelector('.karusell.helskarm');
+if (await page.locator('.topbar').isVisible()) fel.push('karusell: menyn syns i helskärm');
+await kontroll('2c-karusell');
+await page.click('.karusell a:text("Stäng")'); await page.waitForSelector('.turnrad');
+if (!(await page.locator('.topbar').isVisible())) fel.push('karusell: menyn kommer inte tillbaka');
 // 3. Turnering
 await page.click('.turnrad >> nth=0');
 await page.waitForSelector('#stat table');
