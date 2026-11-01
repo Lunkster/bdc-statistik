@@ -173,6 +173,10 @@ if (!adaRad.includes('88,9 %') || !adaRad.includes('75,0 %') || !/\bF\b/.test(ad
 if (!adaRad.includes('35,0 %')) fel.push('statistik: Utgång-% för Ada ska vara 35,0 %');
 if (!(await page.locator('#stat th:has-text("Checkout-%")').isVisible())) fel.push('statistik: Checkout-% saknas');
 await kontroll('2a-statistik-detaljer');
+if ((await page.locator('.tr-kol').count()) !== 3) fel.push('slutspelsträd: ska ha Semifinal, Final och Vinnare');
+if ((await page.locator('.tr-poang').count()) !== 6) fel.push('slutspelsträd: siffrorna ska länka till matcherna');
+if (!(await page.locator('.vinnarkort').innerText()).includes('Ada')) fel.push('slutspelsträd: vinnaren ska vara Ada');
+if ((await page.locator('.tr-kol >> nth=0 >> h3').innerText()) !== 'Semifinal') fel.push('slutspelsträd: fribiljettronden ska inte visas');
 await page.click('.tidslinje summary');
 if ((await page.locator('.tl-rad').count()) !== 4) fel.push('tidslinje: ska visa 4 matcher');
 const tl1 = await page.locator('.tl-huvud >> nth=0').innerText();
@@ -181,8 +185,8 @@ await page.click('.tl-ordning [data-ordning="forst"]');
 const tl2 = await page.locator('.tl-huvud >> nth=0').innerText();
 if (!tl2.includes('18:10') || !tl2.includes('Grupp A')) fel.push('tidslinje: första först: ' + tl2);
 await kontroll('2b-tidslinje');
-const ronder = await page.locator('.rond h3').allInnerTexts();
-if (ronder.join(',') !== 'Kvartsfinal,Semifinal,Final') fel.push('rondnamn: ' + ronder);
+const ronder = await page.locator('.tr-kol h3').allInnerTexts();
+if (ronder.join(',') !== 'Semifinal,Final,Vinnare') fel.push('rondnamn i trädet: ' + ronder);
 if (!(await page.locator('body').innerText()).includes('43,63')) fel.push('decimalkomma saknas');
 // 4. Spelare (kopplad) och okopplat namn
 await page.click('a[href="#/spelare/47"] >> nth=0');

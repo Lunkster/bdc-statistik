@@ -2,6 +2,7 @@
  {
   "datum": "2026-11-02",
   "punkter": [
+   "Slutspelet på tävlingssidan visas nu som ett riktigt slutspelsträd: ronderna bredvid varandra med linjer fram till finalen och vinnaren, resultat och snitt i varje match. Tryck på siffrorna för att se matchens protokoll; i mobilen drar du i sidled (v0.9.7)",
    "Två nya mått på utgångarna, i tävlingens statistik (Detaljer i mobilen) och under Detaljer på matchsidan: Utgång-% – hur stor del av rundorna från 170 eller mindre som slutade med utgång – och Checkout-%, vår uppskattning av hur stor del av pilarna mot dubbel som satt (n01 uppskattar på sitt eget sätt, så den kan skilja lite) (v0.9.6)"
   ]
  },

@@ -361,3 +361,30 @@ body.tv main { max-width: none; }
 .statbox.oppen .stat-detaljer .pil { transform: rotate(180deg); }
 @media (max-width: 899px) { .statbox:not(.oppen) .bara-d { display: none; } }
 @media (min-width: 900px) { .stat-detaljer { display: none; } }
+
+/* Slutspelsträd (v0.9.7) */
+.trad-rulla { overflow-x: auto; -webkit-overflow-scrolling: touch; padding-bottom: .5rem; }
+.trad { display: flex; gap: 2rem; min-width: min-content; align-items: stretch; }
+.tr-kol { display: flex; flex-direction: column; width: 11.5rem; flex: none; }
+.tr-kol h3 { text-align: center; margin-bottom: .5rem; }
+.tr-ronder { flex: 1; display: flex; flex-direction: column; }
+.tr-par { flex: 1; display: flex; flex-direction: column; justify-content: space-around; position: relative; padding: .25rem 0; }
+.tr-match { position: relative; margin: .2rem 0; background: var(--yta); border: 1px solid var(--linje); border-radius: 8px; font-size: .88rem; }
+.tr-match.fri { opacity: .55; }
+.tr-spelare { display: grid; grid-template-columns: 1fr auto; gap: .4rem; align-items: center; padding: .28rem .5rem; }
+.tr-spelare + .tr-spelare { border-top: 1px solid var(--linje); }
+.tr-spelare span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.tr-poang { min-width: 1.4rem; text-align: center; font-weight: 700; background: var(--yta2); border-radius: 4px; color: var(--text); }
+.tr-spelare.vann .tr-poang { color: var(--mint); }
+.tr-match:has(.tr-poang:hover) { border-color: var(--mint); }
+.tr-spelare b { min-width: 1.2rem; text-align: right; color: var(--dampad); }
+.tr-spelare.vann { font-weight: 800; }
+.tr-spelare.vann b { color: var(--mint); }
+.tr-via { display: block; white-space: normal; line-height: 1.2; font-size: .68rem; color: var(--dampad); font-weight: 400; }
+.vinnarkort { padding: .6rem .5rem; text-align: center; font-weight: 800; border-color: var(--rosa); }
+/* linjer: höger från varje match, lodrät mellan paret, vänster in i nästa ronds match */
+.tr-kol:not(.final):not(.vinnare) .tr-match::after { content: ''; position: absolute; right: -1rem; top: 50%; width: 1rem; border-top: 2px solid var(--linje); }
+.tr-kol:not(.final):not(.vinnare) .tr-par:not(.ensam)::after { content: ''; position: absolute; right: -1rem; top: 25%; bottom: 25%; border-right: 2px solid var(--linje); }
+.tr-kol + .tr-kol .tr-match::before { content: ''; position: absolute; left: calc(-1rem - 1px); top: 50%; width: 1rem; border-top: 2px solid var(--linje); }
+.tr-kol.final .tr-match::after { content: ''; position: absolute; right: -2rem; top: 50%; width: 2rem; border-top: 2px solid var(--rosa); }
+.tr-kol.vinnare .tr-match::before { display: none; }

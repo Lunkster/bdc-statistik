@@ -1,6 +1,6 @@
 // Tävlingssida: samma statistik som n01:s statistiksida, grupper, slutspel och matcherna i tidsordning
-import { api, esc, fmt, heltal, spelarlank, datumTid } from './lib.js?v=0.9.6';
-import { checkoutUppskattad, besokUrN01 } from './utgang.js?v=0.9.6';
+import { api, esc, fmt, heltal, spelarlank, datumTid } from './lib.js?v=0.9.7';
+import { checkoutUppskattad, besokUrN01 } from './utgang.js?v=0.9.7';
 
 const pct = (v) => (v == null ? '–' : `${fmt(v, 1)} %`);
 const OMG = { '-1': 'F', '-2': 'SF', '-3': 'KF', '-4': 'ÅF' };
@@ -61,7 +61,7 @@ export async function visaTavling(app, tdid) {
   const q = encodeURIComponent(tdid);
   const [[t], [rad], stat, matcher] = await Promise.all([
     api(`v_turnering?tdid=eq.${q}&select=*`),
-    api(`turnering?tdid=eq.${q}&select=rr_table:data->rr_table,rr_result:data->rr_result,rr_title:data->rr_title,t_title:data->t_title`),
+    api(`turnering?tdid=eq.${q}&select=rr_table:data->rr_table,rr_result:data->rr_result,rr_title:data->rr_title,t_title:data->t_title,t_table:data->t_table,t_result:data->t_result`),
     api(`v_turnering_statistik?tdid=eq.${q}&select=*`),
     api(`v_match?tdid=eq.${q}&select=*&order=ttype,rond,t_no`),
   ]);
@@ -127,7 +127,7 @@ export async function visaTavling(app, tdid) {
       <div class="rulla" id="stat"></div>
     </div>
     ${grupper(rad, perTpid, matcher)}
-    ${slutspel(matcher, rad?.t_title)}
+    ${slutspel(matcher, rad, perTpid)}
     ${tidslinje(matcher, rad)}`;
 
   app.querySelector('#stat').addEventListener('click', (e) => {
@@ -179,16 +179,18 @@ function grupper(rad, perTpid, matcher) {
 function rondNamn(typ, r, sista, tTitel) {
   const egen = typ === 't' ? tTitel?.[r] : '';
   if (egen) return egen;
-  return ['Final', 'Semifinal', 'Kvartsfinal', 'Åttondelsfinal'][sista - r] ?? `Omgång ${r + 1}`;
+  return ['Final', 'Semifinal', 'Kvartsfinal', 'Åttondelsfinal', 'Sextondelsfinal'][sista - r] ?? `Omgång ${r + 1}`;
 }
 
 // Slutspel: matcherna per rond, namngivna bakifrån (final, semifinal …)
-function slutspel(matcher, tTitel) {
-  const ko = matcher.filter((m) => m.ttype !== 'rr' && m.ttype !== 'lg');
-  if (!ko.length) return '';
+function slutspel(matcher, rad, perTpid) {
+  const tTitel = rad?.t_title;
+  const trad = slutspelstrad(matcher, rad, perTpid);
+  const ko = matcher.filter((m) => m.ttype !== 'rr' && m.ttype !== 'lg' && !(trad && m.ttype === 't'));
+  if (!ko.length) return trad ?? '';
   const typer = [...new Set(ko.map((m) => m.ttype))];
   const typnamn = { t: 'Slutspel', t3: 'Bronsmatch', s2: 'B-slutspel', s2_3: 'Bronsmatch B-slutspel', dw: 'Vinnarsidan', dl: 'Förlorarsidan', m: 'Matcher' };
-  return typer.map((typ) => {
+  return (trad ?? '') + typer.map((typ) => {
     const lista = ko.filter((m) => m.ttype === typ);
     const ronder = [...new Set(lista.map((m) => m.rond))].sort((a, b) => a - b);
     const rondnamn = (r) => rondNamn(typ, r, ronder.at(-1), tTitel);
@@ -257,4 +259,56 @@ function kopplaTidslinje(app) {
     }
     d.querySelectorAll('.tl-ordning [data-ordning]').forEach((x) => x.classList.toggle('vald', x === b));
   });
+}
+
+// Slutspelsträd (v0.9.7, önskemål Henrik 2026-11-02) ur n01:s t_table/t_result.
+// t_table[r] = platserna i rond r (par 2k/2k+1 möts, "" = fribiljett); sista raden = vinnaren.
+// Inledande ronder där mer än hälften är fribiljetter visas inte som egna kolumner – de som
+// spelade där får en liten notis vid namnet i första visade ronden.
+function slutspelstrad(matcher, rad, perTpid) {
+  const tab = rad?.t_table, res = rad?.t_result ?? [];
+  if (!Array.isArray(tab) || tab.length < 2 || !tab.some((r) => r.some(Boolean))) return null;
+  const sista = tab.length - 2;                                    // sista ronden med match (finalen)
+  const par = (r) => Array.from({ length: Math.ceil(tab[r].length / 2) }, (_, k) => [tab[r][2 * k] || '', tab[r][2 * k + 1] || '']);
+  const riktig = ([a, b]) => a && b;
+  let forsta = 0;
+  while (forsta < sista && par(forsta).filter(riktig).length * 2 < par(forsta).length) forsta++;
+  const resultat = (r, a, b) => res[r]?.[a]?.[b];
+  const mid = (r, a, b) => matcher.find((m) => m.ttype === 't' && m.rond === r
+    && ((m.tpid_a === a && m.tpid_b === b) || (m.tpid_a === b && m.tpid_b === a)))?.mid;
+  const namn = (tp) => perTpid[tp]?.namn ?? tp;
+  // Notiser för de inledande ronderna som inte visas
+  const via = {};
+  for (let r = 0; r < forsta; r++) for (const [a, b] of par(r).filter(riktig)) {
+    const ra = resultat(r, a, b), rb = resultat(r, b, a);
+    if (ra?.r == null || rb?.r == null) continue;
+    const v = ra.r > rb.r ? a : b;
+    via[v] = `${esc(rondNamn('t', r, sista, rad?.t_title))}: ${Math.max(ra.r, rb.r)}–${Math.min(ra.r, rb.r)} mot ${esc(namn(v === a ? b : a))}`;
+  }
+  const rad1 = (tp, mot, r, vann, m) => {
+    if (!tp) return `<div class="tr-spelare tom"><span class="muted">${mot ? 'fribiljett' : '–'}</span><b></b></div>`;
+    const x = mot ? resultat(r, tp, mot) : null;
+    return `<div class="tr-spelare${vann ? ' vann' : ''}">
+      <span>${spelarlank(namn(tp), perTpid[tp]?.spelare_id)}${x?.a != null ? ` <small class="muted">${fmt(x.a, 1)}</small>` : ''}${r === forsta && via[tp] ? `<small class="tr-via">${via[tp]}</small>` : ''}</span>
+      ${m ? `<a class="tr-poang" href="#/match/${encodeURIComponent(m)}" title="Visa matchen">${x?.r ?? ''}</a>` : `<b>${x?.r ?? ''}</b>`}</div>`;
+  };
+  const matchKort = (r, [a, b]) => {
+    const ra = resultat(r, a, b), rb = resultat(r, b, a);
+    const klar = ra?.r != null && rb?.r != null && ra.r !== rb.r;
+    const m = a && b ? mid(r, a, b) : null;
+    return `<div class="tr-match${a && b ? '' : ' fri'}">${rad1(a, b, r, klar && ra.r > rb.r, m)}${rad1(b, a, r, klar && rb.r > ra.r, m)}</div>`;
+  };
+  const kolumner = [];
+  for (let r = forsta; r <= sista; r++) {
+    const p = par(r);
+    const grupper = [];
+    for (let i = 0; i < p.length; i += 2) grupper.push(p.slice(i, i + 2));
+    kolumner.push(`<div class="tr-kol${r === sista ? ' final' : ''}"><h3>${esc(rondNamn('t', r, sista, rad?.t_title))}</h3>
+      <div class="tr-ronder">${grupper.map((g) => `<div class="tr-par${g.length === 2 ? '' : ' ensam'}">${g.map((x) => matchKort(r, x)).join('')}</div>`).join('')}</div></div>`);
+  }
+  const vinnare = tab[sista + 1]?.[0];
+  if (vinnare) kolumner.push(`<div class="tr-kol vinnare"><h3>Vinnare</h3><div class="tr-ronder"><div class="tr-par ensam"><div class="tr-match vinnarkort">🏆 ${spelarlank(namn(vinnare), perTpid[vinnare]?.spelare_id)}</div></div></div></div>`);
+  return `<h2>Slutspel</h2>
+    <p class="muted liten">Tryck på siffrorna för att se matchens protokoll. Dra i sidled för att se hela trädet.</p>
+    <div class="trad-rulla"><div class="trad">${kolumner.join('')}</div></div>`;
 }
