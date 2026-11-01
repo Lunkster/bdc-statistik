@@ -1,5 +1,5 @@
 // Turneringssida: samma statistik som n01:s statistiksida, grupper och slutspel
-import { api, esc, fmt, heltal, spelarlank } from './lib.js?v=0.6.0';
+import { api, esc, fmt, heltal, spelarlank } from './lib.js?v=0.6.1';
 
 const KOLUMNER = [
   // nyckel, rubrik, förklaring, sortering (1 = högst först, -1 = lägst först), format
@@ -24,6 +24,11 @@ export async function visaTurnering(app, tdid) {
     api(`v_turnering_statistik?tdid=eq.${q}&select=*`),
     api(`v_match?tdid=eq.${q}&select=*&order=ttype,rond,t_no`),
   ]);
+  // Cuper som turneringen ingår i (omgång eller finalspel)
+  const iCup = await api(`v_tavling_turnering?tdid=eq.${q}&select=tavling_id,roll`).catch(() => []);
+  const cuper = iCup.length ? await api(`tavling?id=in.(${iCup.map((c) => c.tavling_id).join(',')})&select=id,namn`) : [];
+  const cupLankar = iCup.map((c) => { const cup = cuper.find((x) => x.id === c.tavling_id);
+    return cup ? `<a class="chip cuplank" href="#/cup/${cup.id}">🏆 ${esc(cup.namn)}${c.roll === 'final' ? ' – finalspel' : ''} →</a>` : ''; }).join('');
   if (!t) { app.innerHTML = '<p class="fel">Turneringen finns inte.</p>'; return; }
 
   const perTpid = Object.fromEntries(stat.map((s) => [s.tpid, s]));
@@ -60,6 +65,7 @@ export async function visaTurnering(app, tdid) {
     <h1>${esc(t.serie ?? t.titel)}${t.omgang ? ` <span class="muted">omg ${t.omgang}</span>` : ''}</h1>
     <p class="muted">${esc(t.datum ?? '')} · ${t.deltagare} spelare · ${t.matcher} matcher${t.startpoang ? ` · ${t.startpoang}` : ''}
       · <a href="${esc(t.n01_url)}" target="_blank" rel="noopener">Öppna i n01 ↗</a></p>
+    ${cupLankar ? `<div class="filter cuplankar">${cupLankar}</div>` : ''}
     ${t.vinnare ? `<p class="vinnarrad">🏆 ${spelarlank(t.vinnare, t.vinnare_id)}</p>` : ''}
     <div class="topplistor">
       ${topp('Högsta utgångar', hogaUt, (s) => s.high_out)}

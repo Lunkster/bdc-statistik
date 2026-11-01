@@ -44,7 +44,7 @@ await page.route('https://xkfjbrkrtetkbjugresq.supabase.co/**', async (route) =>
     return svara(tabell === 'spelare' ? [{ id: 99 }] : []); }
   if (tabell === 'v_turnering') return svara(q.get('tdid') ? F.turn : F.lista);
   if (tabell === 'turnering') return svara((q.get('select') ?? '').includes('titel') ? F.turnlista : F.rad);
-  if (tabell === 'tavling') return svara(q.get('typ') === 'eq.distriktsserie' ? F.ds_liga : F.tavling);
+  if (tabell === 'tavling') return svara(q.get('typ') === 'eq.distriktsserie' ? F.ds_liga : F.tavling.filter((r) => !(q.get('id') ?? '').startsWith('in.') || q.get('id').slice(4, -1).split(',').includes(String(r.id))));
   if (tabell === 'ds_division') return svara(F.ds_division);
   if (tabell === 'ds_lag') return svara(F.ds_lag);
   if (tabell === 'ds_alias') return svara([]);
@@ -58,7 +58,7 @@ await page.route('https://xkfjbrkrtetkbjugresq.supabase.co/**', async (route) =>
   if (tabell === 'v_ds_match') return svara(F.ds_match.filter((r) => (!q.get('mid') || `eq.${r.mid}` === q.get('mid')) && (!q.get('nyckel') || `eq.${r.nyckel}` === q.get('nyckel'))));
   if (tabell === 'ds_leg') return svara(F.leg);
   if (tabell === 'ds_kast') return svara(F.kast);
-  if (tabell === 'v_tavling_turnering') return svara(F.tt);
+  if (tabell === 'v_tavling_turnering') return svara(F.tt.filter((r) => !q.get('tdid') || `eq.${r.tdid}` === q.get('tdid')));
   if (tabell === 'v_cup_poang') return svara(F.cup_poang);
   if (tabell === 'tavling_val' || tabell === 'poang_manuell') return svara([]);
   if (tabell === 'uppgift') return svara(F.uppgift);
@@ -109,6 +109,7 @@ await page.click('.chip[data-serie=""]');
 await page.click('.turnrad >> nth=0');
 await page.waitForSelector('#stat table');
 await kontroll('2-turnering');
+if ((await page.locator('a.cuplank[href="#/cup/1"]').count()) !== 1) fel.push('turnering: länk till cupen saknas');
 const forsta = await page.locator('#stat tbody tr >> nth=0 >> td >> nth=0').innerText();
 if (forsta !== 'Ada') fel.push('sortering på placering: ' + forsta);
 await page.click('[data-sort="snitt"]');
