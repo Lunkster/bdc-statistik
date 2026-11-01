@@ -1,15 +1,15 @@
 // Router och inloggning
-import { login, logout, isLoggedIn, arAdmin, esc, laddaBilder } from './lib.js?v=0.9.2';
-import { visaTavlingar } from './tavlingar.js?v=0.9.2';
-import { visaTavling } from './tavling.js?v=0.9.2';
-import { visaSpelare, visaNamn, visaSpelarlista } from './spelare.js?v=0.9.2';
-import { visaAdmin } from './admin.js?v=0.9.2';
-import { visaMatch } from './match.js?v=0.9.2';
-import { visaNyheter } from './nyheter.js?v=0.9.2';
-import { visaCuper, visaCup } from './cuper.js?v=0.9.2';
-import { visaSerien, visaLagmatch, visaDsMatch } from './serien.js?v=0.9.2';
-import { visaRekord } from './rekord.js?v=0.9.2';
-import { visaKarusellSida } from './karusell.js?v=0.9.2';
+import { login, logout, isLoggedIn, arAdmin, esc, laddaBilder } from './lib.js?v=0.9.3';
+import { visaTavlingar } from './tavlingar.js?v=0.9.3';
+import { visaTavling } from './tavling.js?v=0.9.3';
+import { visaSpelare, visaNamn, visaSpelarlista } from './spelare.js?v=0.9.3';
+import { visaAdmin } from './admin.js?v=0.9.3';
+import { visaMatch } from './match.js?v=0.9.3';
+import { visaNyheter } from './nyheter.js?v=0.9.3';
+import { visaCuper, visaCup } from './cuper.js?v=0.9.3';
+import { visaSerien, visaLagmatch, visaDsMatch } from './serien.js?v=0.9.3';
+import { visaRekord } from './rekord.js?v=0.9.3';
+import { visaKarusellSida } from './karusell.js?v=0.9.3';
 
 const app = document.getElementById('app');
 
@@ -17,7 +17,7 @@ function visaLogin(meddelande = '') {
   document.body.classList.add('utloggad');
   app.innerHTML = `
     <form class="kort login" id="login">
-      <img src="emblem.png?v=0.9.2" alt="Dart Club Bankeryd" class="emblem">
+      <img src="emblem.png?v=0.9.3" alt="Dart Club Bankeryd" class="emblem">
       <h1>Klubbstatistik</h1>
       <label>Klubbkod <input type="password" name="kod" autocomplete="current-password" required></label>
       <label class="rad"><input type="checkbox" name="admin"> Logga in som admin</label>

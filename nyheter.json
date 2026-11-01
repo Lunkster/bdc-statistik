@@ -2,6 +2,7 @@
  {
   "datum": "2026-11-01",
   "punkter": [
+   "Matchsidan visar nu varje leg som n01:s protokoll: uppifrån och ned med poäng och kvar för båda spelarna, pilarna räknade i mitten, ring runt 100+ och hur många pilar utgången tog. Statistiken står bredvid (under i mobilen) – tryck på Detaljer för 60+, 80+, 120+, 170+ och fler siffror. Gäller även matcherna i distriktsserien (v0.9.3)",
    "Nya namn: en kväll i n01 heter nu tävling (fliken Tävlingar), och flera tävlingar med gemensam poängtabell är en cup. Menyn har ordningen Tävlingar, Cuper, Serien, Spelare, Rekord. Rekordsidan visar de tre bästa i varje gren – tryck Visa topp 10 för fler (v0.9.0)",
    "Karusellen visar nu tydliga tabeller, och i helskärm fyller den hela skärmen och byter bild av sig själv (v0.8.1)",
    "Ny flik Rekord: klubbrekorden på 501 – bästa leg, högsta utgång, flest 180:or och högsta snitt i en match och en tävling, topp 10 i varje (v0.8.0)",

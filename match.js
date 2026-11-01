@@ -1,5 +1,6 @@
-// Matchsida: resultat, statistik per spelare och varje leg runda för runda
-import { api, esc, fmt, spelarlank } from './lib.js?v=0.9.2';
+// Matchsida: resultat, statistik (med Detaljer) och protokoll per leg som n01
+import { api, esc, spelarlank } from './lib.js?v=0.9.3';
+import { rakna, statistikHtml, legsHtml, protokollSida, koppla } from './protokoll.js?v=0.9.3';
 
 export async function visaMatch(app, mid) {
   const q = encodeURIComponent(mid);
@@ -14,27 +15,11 @@ export async function visaMatch(app, mid) {
   const fas = a.ttype === 'rr' ? `Gruppspel` : a.ttype === 't3' ? 'Bronsmatch' : 'Slutspel';
   const namn = (s) => (s ? spelarlank(s.namn, s.spelare_id) : '–');
 
-  const rader = [
-    ['Legs', (s) => s.legs_vunna], ['3-pilssnitt', (s) => fmt(s.snitt, 2)], ['First 9', (s) => fmt(s.snitt_f9, 2)],
-    ['Pilar per vunnet leg', (s) => fmt(s.pilar_per_leg, 1)], ['Bästa leg', (s) => s.basta_leg ?? '–'],
-    ['Högsta runda', (s) => s.hogsta_runda ?? '–'], ['Högsta utgång', (s) => s.hogsta_utgang ?? '–'],
-    ['100+', (s) => s.t100 ?? 0], ['140+', (s) => s.t140 ?? 0], ['170+', (s) => s.t170 ?? 0], ['180', (s) => s.t180 ?? 0],
-  ];
-
-  const legHtml = legs.map((l) => {
-    const k = kast.filter((x) => x.leg_nr === l.nr);
-    const sida = (s) => k.filter((x) => x.sida === s);
-    const pilar = (s) => sida(s).reduce((sum, x) => sum + x.pilar, 0);
-    const vinnare = l.vinnare === 0 ? a : l.vinnare === 1 ? b : null;
-    const runda = (x) => `<span class="runda${x.utgang ? ' ut' : ''}${x.poang >= 100 ? ' hog' : ''}" title="Kastade ${x.poang}, kvar ${x.kvar}"><b>${x.poang}</b><small>${x.kvar}</small></span>`;
-    // Startpoängen före första rundan (kan skilja mellan sidorna vid handikapp)
-    const start = (r) => (r.length ? `<span class="runda start" title="Startpoäng"><b>&nbsp;</b><small>${r[0].kvar + r[0].poang}</small></span>` : '');
-    return `<div class="kort leg">
-      <h3>Leg ${l.nr + 1} <span class="muted liten">· ${esc((l.forst === 1 ? b : a)?.namn ?? '')} började${vinnare ? ` · vinst ${esc(vinnare.namn)}` : ''}${l.mfd ? ' · avgjort med närmast bull' : ''}</span></h3>
-      <div class="legsida"><span class="muted">${esc(a.namn)}</span><span class="rundor">${start(sida(0))}${sida(0).map(runda).join('')}</span><small class="muted">${pilar(0)} pilar</small></div>
-      ${b ? `<div class="legsida"><span class="muted">${esc(b.namn)}</span><span class="rundor">${start(sida(1))}${sida(1).map(runda).join('')}</span><small class="muted">${pilar(1)} pilar</small></div>` : ''}
-    </div>`;
-  }).join('');
+  // Statistik ur rundorna (som n01); finns inga rundor används vyns siffror
+  const stat = (s, sida) => (s ? rakna(kast, legs, sida, s.legs_vunna) ?? {
+    legs: s.legs_vunna, snitt: s.snitt, f9: s.snitt_f9, t100k: s.t100, t140k: (s.t140 ?? 0) + (s.t170 ?? 0), t180: s.t180,
+    utgang: s.hogsta_utgang, basta: s.basta_leg, pilarPerLeg: s.pilar_per_leg, hogsta: s.hogsta_runda,
+  } : null);
 
   app.innerHTML = `
     <p><a href="#/tavling/${encodeURIComponent(a.tdid)}" class="tillbaka">← ${esc(t?.serie ?? t?.titel ?? 'Tävlingen')}${t?.omgang ? ` omg ${t.omgang}` : ''}</a></p>
@@ -45,11 +30,6 @@ export async function visaMatch(app, mid) {
       <b class="resultat stor">${a.legs_vunna}–${b?.legs_vunna ?? 0}</b>
       <span class="${b?.vann ? 'vinst' : ''}">${namn(b)}</span>
     </div>
-    <div class="rulla"><table class="tabell jamfor">
-      <thead><tr><th>${esc(a.namn)}</th><th></th><th>${esc(b?.namn ?? '')}</th></tr></thead>
-      <tbody>${rader.map(([n, f]) => `<tr><td>${f(a)}</td><td class="muted">${n}</td><td>${b ? f(b) : ''}</td></tr>`).join('')}</tbody>
-    </table></div>
-    <h2>Legs</h2>
-    <p class="muted liten">Varje runda = tre pilar: kastade poäng överst, kvar under. Första rutan är startpoängen. Rosa = 100 eller mer, mint = utgång.</p>
-    ${legHtml}`;
+    ${protokollSida(statistikHtml(a.namn, b?.namn ?? '', stat(a, 0), stat(b, 1)), legsHtml(legs, kast, (x) => (x === 0 ? a.namn : b?.namn ?? '')))}`;
+  koppla(app);
 }

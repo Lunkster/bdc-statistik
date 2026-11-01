@@ -1,6 +1,7 @@
 // Distriktsserien (v0.5): serietabeller för hela divisionerna, lagmatcher och Bankeryds spelare.
 // Delmatcher (singlar/dubblar) med legs finns bara för Bankeryds lag (beslut Henrik 2026-10-31).
-import { api, esc, fmt, spelarlank } from './lib.js?v=0.9.2';
+import { api, esc, fmt, spelarlank } from './lib.js?v=0.9.3';
+import { rakna, statistikHtml, legsHtml, protokollSida, koppla } from './protokoll.js?v=0.9.3';
 
 const lagNamn = (namn, bankeryd) => (bankeryd ? `<b class="bankeryd">${esc(namn)}</b>` : esc(namn));
 const resultat = (a, b) => (a == null || b == null ? '–' : `${a}–${b}`);
@@ -127,36 +128,6 @@ export async function visaDsMatch(app, mid) {
   if (!d) { app.innerHTML = '<p class="fel">Matchen finns inte.</p>'; return; }
   const [lm] = await api(`v_ds_lagmatch?tdid=eq.${encodeURIComponent(d.tdid)}&nyckel=eq.${encodeURIComponent(d.nyckel)}&select=division,datum,namn_a,namn_b`);
   const sidaNamn = (s) => (s === 0 ? (d.spelare_a ?? []).map((p) => p.namn).join(' & ') || d.namn_a : (d.spelare_b ?? []).map((p) => p.namn).join(' & ') || d.namn_b);
-  // Statistik per sida ur rundorna
-  const stat = (s) => {
-    const k = kast.filter((x) => x.sida === s);
-    const poang = k.reduce((t, x) => t + x.poang, 0), pilar = k.reduce((t, x) => t + x.pilar, 0);
-    const f9 = k.filter((x) => x.runda <= 3);
-    const vunna = legs.filter((l) => l.vinnare === s && !l.mfd).map((l) => k.filter((x) => x.leg_nr === l.nr).reduce((t, x) => t + x.pilar, 0));
-    const ut = k.filter((x) => x.utgang).map((x) => x.poang);
-    return {
-      snitt: pilar ? (3 * poang) / pilar : null,
-      f9: f9.length ? (3 * f9.reduce((t, x) => t + x.poang, 0)) / f9.reduce((t, x) => t + x.pilar, 0) : null,
-      basta: vunna.length ? Math.min(...vunna) : null, hogsta: k.length ? Math.max(...k.map((x) => x.poang)) : null,
-      utgang: ut.length ? Math.max(...ut) : null, t100: k.filter((x) => x.poang >= 100 && x.poang < 140).length,
-      t140: k.filter((x) => x.poang >= 140 && x.poang < 180).length, t180: k.filter((x) => x.poang === 180).length,
-    };
-  };
-  const [a, b] = [stat(0), stat(1)];
-  const rader = [['3-pilssnitt', (s) => fmt(s.snitt, 2)], ['First 9', (s) => fmt(s.f9, 2)], ['Bästa leg', (s) => s.basta ?? '–'],
-    ['Högsta runda', (s) => s.hogsta ?? '–'], ['Högsta utgång', (s) => s.utgang ?? '–'], ['100+', (s) => s.t100], ['140+', (s) => s.t140], ['180', (s) => s.t180]];
-  const legHtml = legs.map((l) => {
-    const k = kast.filter((x) => x.leg_nr === l.nr);
-    const sida = (s) => k.filter((x) => x.sida === s);
-    const pilar = (s) => sida(s).reduce((sum, x) => sum + x.pilar, 0);
-    const runda = (x) => `<span class="runda${x.utgang ? ' ut' : ''}${x.poang >= 100 ? ' hog' : ''}" title="Kastade ${x.poang}, kvar ${x.kvar}"><b>${x.poang}</b><small>${x.kvar}</small></span>`;
-    // Startpoängen före första rundan (kan skilja mellan sidorna vid handikapp)
-    const start = (r) => (r.length ? `<span class="runda start" title="Startpoäng"><b>&nbsp;</b><small>${r[0].kvar + r[0].poang}</small></span>` : '');
-    return `<div class="kort leg">
-      <h3>Leg ${l.nr + 1} <span class="muted liten">· ${esc(sidaNamn(l.forst === 1 ? 1 : 0))} började${l.vinnare != null ? ` · vinst ${esc(sidaNamn(l.vinnare))}` : ''}${l.mfd ? ' · avgjort med närmast bull' : ''}</span></h3>
-      ${[0, 1].map((s) => `<div class="legsida"><span class="muted">${esc(sidaNamn(s))}</span><span class="rundor">${start(sida(s))}${sida(s).map(runda).join('')}</span><small class="muted">${pilar(s)} pilar</small></div>`).join('')}
-    </div>`;
-  }).join('');
   app.innerHTML = `
     <p><a href="#/lagmatch/${encodeURIComponent(d.tdid)}/${encodeURIComponent(d.nyckel)}" class="tillbaka">← ${esc(lm?.namn_a ?? '')} – ${esc(lm?.namn_b ?? '')}</a></p>
     <h1>${esc((d.delmatch ?? 'Match').replace(/\s*\(.*$/, ''))}</h1>
@@ -166,11 +137,7 @@ export async function visaDsMatch(app, mid) {
       <b class="resultat stor">${d.legs_a}–${d.legs_b ?? 0}</b>
       <span class="${d.legs_b > d.legs_a ? 'vinst' : ''}">${spelarna(d.spelare_b) || esc(d.namn_b)}</span>
     </div>
-    <div class="rulla"><table class="tabell jamfor">
-      <thead><tr><th>${esc(sidaNamn(0))}</th><th></th><th>${esc(sidaNamn(1))}</th></tr></thead>
-      <tbody>${rader.map(([n, f]) => `<tr><td>${f(a)}</td><td class="muted">${n}</td><td>${f(b)}</td></tr>`).join('')}</tbody>
-    </table></div>
-    <h2>Legs</h2>
-    <p class="muted liten">Varje runda = tre pilar: kastade poäng överst, kvar under. Första rutan är startpoängen${d.dubbel ? ' – i dubbel kastar spelarna varannan runda' : ''}. Rosa = 100 eller mer, mint = utgång.</p>
-    ${legHtml}`;
+    ${protokollSida(statistikHtml(sidaNamn(0), sidaNamn(1), rakna(kast, legs, 0, d.legs_a), rakna(kast, legs, 1, d.legs_b)),
+      legsHtml(legs, kast, sidaNamn), d.dubbel ? ' I dubbel kastar spelarna varannan runda.' : '')}`;
+  koppla(app);
 }
