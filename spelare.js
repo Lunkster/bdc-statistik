@@ -1,6 +1,6 @@
 // Spelarsida (kopplad person eller okopplat n01-namn) med grafer och rekord, samt spelarlista
-import { api, esc, fmt, heltal, spelarlank, bildUrl, laddaUppBild, taBortBild } from './lib.js?v=0.7.0';
-import { tidsdiagram } from './diagram.js?v=0.7.0';
+import { api, esc, fmt, heltal, spelarlank, bildUrl, laddaUppBild, taBortBild } from './lib.js?v=0.7.1';
+import { tidsdiagram } from './diagram.js?v=0.7.1';
 
 let vyLage = 'turnering';   // 'turnering' | 'match' – minns mellan spelare
 
@@ -110,6 +110,25 @@ export async function visaNamn(app, namn) {
   await rita(app, namn, turn, matcher, 'Namnet är inte kopplat till en person än – statistiken gäller namnet som det står i n01 och kan gälla flera personer. Kopplingar görs av admin.');
 }
 
+// Sorterbara tabeller på spelarsidan: kolumn = [nyckel, rubrik, standardriktning (-1 = störst först), värde]
+const sortTurn = { k: 'datum', dir: -1 }, sortMatch = { k: 'datum', dir: -1 };   // minns mellan spelare
+function sortera(rader, kol, st) {
+  const v = kol.find((c) => c[0] === st.k)?.[3] ?? (() => 0);
+  return [...rader].sort((a, b) => {
+    const x = v(a), y = v(b);
+    if ((x == null || x === '') && (y == null || y === '')) return 0;
+    if (x == null || x === '') return 1; if (y == null || y === '') return -1;
+    return st.dir * (typeof x === 'string' ? x.localeCompare(y, 'sv') : x - y);
+  });
+}
+const rubriker = (kol, st) => `<tr>${kol.map(([k, rub], i) => `<th${i ? '' : ' class="fast"'}><button type="button" data-sort="${k}" class="${k === st.k ? 'sorterad' : ''}">${rub}${k === st.k ? (st.dir === 1 ? ' ▲' : ' ▼') : ''}</button></th>`).join('')}</tr>`;
+function klickSort(e, kol, st) {
+  const b = e.target.closest('[data-sort]'); if (!b) return false;
+  const k = b.dataset.sort;
+  if (st.k === k) st.dir = -st.dir; else { st.k = k; st.dir = kol.find((c) => c[0] === k)[2]; }
+  return true;
+}
+
 const ms = (datum, tid) => (tid ? Date.parse(tid) : Date.parse(`${datum}T12:00:00Z`));
 const ttypNamn = (m) => (m.ttype === 'rr' ? 'gruppspel' : m.ttype === 't3' ? 'bronsmatch' : 'slutspel');
 
@@ -197,26 +216,45 @@ async function rita(app, rubrik, allaTurn, allaMatcher, under, extra = '', huvud
     <div id="grafer"></div>
     <p class="muted liten">Pilar per leg och bästa leg räknar bara legs som vunnits med pilar – inte legs avgjorda med närmast bull (middle for diddle). Peka eller tryck på en punkt för att se värdet; klicka (eller tryck igen) för att öppna matchen eller turneringen.</p>
     <h2>Turneringar</h2>
-    <div class="rulla"><table class="tabell">
-      <thead><tr><th class="fast">Datum</th><th>Turnering</th><th>Plac</th><th>Matcher</th><th>Snitt</th><th>F9</th><th>180</th><th>HO</th></tr></thead>
-      <tbody>${perT.map((r) => `<tr>
+    <div class="rulla" id="turnlista"></div>
+    <h2>Matcher</h2>
+    <p class="muted liten">Senaste först. Tryck på en rubrik för att sortera, och på resultatet för att se varje leg runda för runda.</p>
+    <div class="rulla" id="matchlista"></div>${extra}`;
+
+  // Turneringarna – sorterbara
+  const tKol = [
+    ['datum', 'Datum', -1, (r) => r.t.datum ?? ''], ['turnering', 'Turnering', 1, (r) => tnamn(r.tdid)],
+    ['plac', 'Plac', 1, (r) => r.placering ?? null], ['matcher', 'Matcher', -1, (r) => (r.matcher ? r.vunna_matcher / r.matcher : null)],
+    ['snitt', 'Snitt', -1, (r) => r.snitt], ['f9', 'F9', -1, (r) => r.snitt_f9], ['t180', '180', -1, (r) => r.t180 || null], ['ho', 'HO', -1, (r) => r.high_out],
+  ];
+  const ritaTurn = () => {
+    const lista = sortera(perT, tKol, sortTurn);
+    document.getElementById('turnlista').innerHTML = `<table class="tabell">
+      <thead>${rubriker(tKol, sortTurn)}</thead>
+      <tbody>${lista.map((r) => `<tr>
         <td class="fast">${esc(r.t.datum ?? '')}</td>
-        <td><a href="${tlank(r)}">${esc(tnamn(r.tdid))}</a></td>
+        <td class="vanster"><a href="${tlank(r)}">${esc(tnamn(r.tdid))}</a></td>
         <td>${r.placering ? `${r.placering}/${r.t.deltagare ?? ''}` : '–'}</td>
         <td>${r.vunna_matcher}–${r.matcher}</td><td>${fmt(r.snitt, 2)}</td><td>${fmt(r.snitt_f9, 2)}</td>
         <td>${r.t180 || ''}</td><td>${r.high_out ?? ''}</td></tr>`).join('')}</tbody>
-    </table></div>
-    <h2>Matcher</h2>
-    <p class="muted liten">Alla matcher, senaste först. Tryck på resultatet för att se varje leg runda för runda.</p>
-    <div class="rulla" id="matchlista"></div>${extra}`;
+    </table>`;
+  };
+  ritaTurn();
+  app.querySelector('#turnlista').addEventListener('click', (e) => { if (klickSort(e, tKol, sortTurn)) ritaTurn(); });
 
   // Alla matcher med länk till matchsidan (de senaste 15, resten bakom en knapp)
   const sorteradeMatcher = [...matcher].sort((a, b) => ms(b.datum, b.starttid) - ms(a.datum, a.starttid));
   let visaAlla = false;
+  const mKol = [
+    ['datum', 'Datum', -1, (m) => ms(m.datum, m.starttid)], ['resultat', 'Resultat', -1, (m) => (m.vann ? 100 : 0) + (m.legs_vunna ?? 0) - (m.legs_forlorade ?? 0)],
+    ['mot', 'Mot', 1, (m) => m.mot_namn ?? ''], ['snitt', 'Snitt', -1, (m) => m.snitt], ['f9', 'F9', -1, (m) => m.snitt_f9],
+    ['ho', 'HO', -1, (m) => m.hogsta_utgang], ['turnering', 'Turnering', 1, (m) => tnamn(m.tdid)],
+  ];
   const ritaMatcher = () => {
-    const lista = visaAlla ? sorteradeMatcher : sorteradeMatcher.slice(0, 15);
+    const sorterade = sortera(sorteradeMatcher, mKol, sortMatch);
+    const lista = visaAlla ? sorterade : sorterade.slice(0, 15);
     document.getElementById('matchlista').innerHTML = sorteradeMatcher.length ? `<table class="tabell matchtabell">
-      <thead><tr><th class="fast">Datum</th><th>Resultat</th><th>Mot</th><th>Snitt</th><th>F9</th><th>HO</th><th>Turnering</th></tr></thead>
+      <thead>${rubriker(mKol, sortMatch)}</thead>
       <tbody>${lista.map((m) => `<tr>
         <td class="fast">${esc(m.datum ?? '')}</td>
         <td><a href="${mlank(m)}" class="resultat ${m.vann ? 'vann' : 'forlorade'}" title="Visa matchen">${m.legs_vunna}–${m.legs_forlorade}</a></td>
@@ -228,6 +266,7 @@ async function rita(app, rubrik, allaTurn, allaMatcher, under, extra = '', huvud
     document.getElementById('alla-matcher')?.addEventListener('click', () => { visaAlla = !visaAlla; ritaMatcher(); });
   };
   ritaMatcher();
+  app.querySelector('#matchlista').addEventListener('click', (e) => { if (klickSort(e, mKol, sortMatch)) ritaMatcher(); });
 
   const ritaGrafer = () => {
     app.querySelectorAll('[data-lage]').forEach((b) => b.classList.toggle('vald', b.dataset.lage === vyLage));
