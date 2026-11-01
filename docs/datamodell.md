@@ -79,6 +79,7 @@ erDiagram
     text visningsnamn
     text medlemsnummer UK
     boolean aktiv
+    text bild
   }
   alias {
     integer id PK
@@ -187,6 +188,8 @@ erDiagram
 - **Spelare:** `fornamn` + `efternamn`; `namn` sätts av en trigger när någon av dem finns. `medlemsnummer` unikt, tomt = null.
 - **Ändringslogg:** `alias_logg` fylls av en trigger vid varje ny, flyttad eller borttagen koppling, och av `sla_ihop_spelare(fran, till)` (bara admin) som flyttar alla kopplingar och tar bort den ena spelaren.
 - **Cuper:** `tavling` (namn, typ klubbcup/distriktsserie, serie, från, till, kvalgräns, poängregler i `regler` jsonb), `tavling_val` (undantag per turnering: final, omgang, utesluten), `poang_manuell` (bull-utgångar). Placering 1 = finalvinst, 2 = finalförlust, 3 = semifinalplats (n01:s rank).
+- **Porträtt (v0.7.0):** bilden ligger i den privata Storage-bucketen `portratt` som `<spelare_id>.jpg` (256×256 JPEG, förminskad i webbläsaren). `spelare.bild` = filnamnet med versionsstämpel (`47.jpg?v=…`), null = ingen bild. Alla inloggade får lägga upp, byta och ta bort (beslut Henrik 2026-11-01) – bilden sätts via `satt_bild(sid, bild)`, som bara ändrar den kolumnen. Appen visar bilderna via signerade länkar som gäller en timme.
+- **Spelform:** turneringens `startpoang` – 501 (torsdagar) eller 301 (söndagar, sedan 2026-06-28 med handikapp 301–421 per spelare; den egna startpoängen syns i första rundan i `kast`). Appen delar statistiken per spelform (beslut Henrik 2026-11-01).
 - **Behörighet:** roll i `app_metadata.roll`. `medlem` och `admin` läser allt; bara `admin` skriver `spelare` och `alias`. Anonyma har ingen åtkomst.
 
 ## Vyer

@@ -260,3 +260,11 @@ a.lagmatch:hover { text-decoration: none; border-color: var(--rosa); }
 .gruppmatcher summary { cursor: pointer; color: var(--mint); font-size: .9rem; }
 .gruppmatcher .match { margin-top: .35rem; }
 .matchtabell td.vanster { text-align: left; }
+
+/* Porträtt (v0.7.0) */
+.avatar { width: 1.6em; height: 1.6em; border-radius: 50%; object-fit: cover; vertical-align: middle; margin-right: .35em; border: 1px solid var(--linje); }
+.portratt { display: flex; gap: 1rem; align-items: center; margin: .5rem 0 1rem; }
+.portratt img, .portratt .tom { width: 7rem; height: 7rem; border-radius: 50%; object-fit: cover; border: 3px solid var(--rosa); background: var(--yta2); }
+.portratt .tom { display: grid; place-items: center; color: var(--dampad); font-size: 2.5rem; font-weight: 800; }
+.portratt .knappar { display: flex; flex-direction: column; gap: .4rem; align-items: flex-start; }
+.portratt input[type=file] { display: none; }

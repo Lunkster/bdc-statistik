@@ -14,6 +14,8 @@ const server = http.createServer((req, res) => {
   res.end(fs.readFileSync(fil));
 }).listen(8765);
 
+// 1×1 px PNG för porträtt i attrappen
+const PNG = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==', 'base64');
 const jwt = (roll) => 'x.' + Buffer.from(JSON.stringify({ app_metadata: { roll } })).toString('base64url') + '.y';
 let roll = 'admin';
 const fel = [];
@@ -37,12 +39,17 @@ await page.route('https://xkfjbrkrtetkbjugresq.supabase.co/**', async (route) =>
     roll = b.email.includes('bdcadmin') ? 'admin' : 'medlem';
     return svara({ access_token: jwt(roll), refresh_token: 'r', expires_at: Math.floor(Date.now() / 1000) + 3600 });
   }
+  if (u.pathname.startsWith('/storage/v1/object/sign/') && route.request().method() === 'POST') return svara(JSON.parse(route.request().postData()).paths.map((p) => ({ path: p, signedURL: `/object/sign/portratt/${p}?token=x` })));
+  if (u.pathname.startsWith('/storage/v1/object/sign/portratt/') || (u.pathname.startsWith('/storage/v1/') && route.request().method() === 'GET'))
+    return route.fulfill({ status: 200, contentType: 'image/png', body: PNG });
+  if (u.pathname.startsWith('/storage/v1/object/portratt/')) { skrivningar.push(`${route.request().method()} storage ${u.pathname}`); return svara({ Key: 'x' }); }
   if (u.pathname.startsWith('/functions/v1/hamta')) return svara({ ok: true, klart: true, kvar: 0, turneringar: 1, matcher: 30 });
   const tabell = u.pathname.split('/').pop();
   const q = u.searchParams;
   if (route.request().method() !== 'GET') { skrivningar.push(`${route.request().method()} ${tabell}${u.search} ${route.request().postData() ?? ''}`);
     return svara(tabell === 'spelare' ? [{ id: 99 }] : []); }
   if (tabell === 'v_turnering') return svara(q.get('tdid') ? F.turn : F.lista);
+  if (tabell === 'turnering' && q.get('select') === 'tdid,startpoang') return svara([...F.lista.map((t) => ({ tdid: t.tdid, startpoang: t.serie === 'Söndagscup' ? 301 : 501 }))]);
   if (tabell === 'turnering') return svara((q.get('select') ?? '').includes('titel') ? F.turnlista : F.rad);
   if (tabell === 'tavling') return svara(q.get('typ') === 'eq.distriktsserie' ? F.ds_liga : F.tavling.filter((r) => !(q.get('id') ?? '').startsWith('in.') || q.get('id').slice(4, -1).split(',').includes(String(r.id))));
   if (tabell === 'ds_division') return svara(F.ds_division);
@@ -78,6 +85,7 @@ await page.route('https://xkfjbrkrtetkbjugresq.supabase.co/**', async (route) =>
   if (tabell === 'alias_logg') return svara(F.alias_logg);
   if (tabell === 'leg') return svara(F.leg);
   if (tabell === 'kast') return svara(F.kast);
+  if (tabell === 'spelare' && q.get('bild')) return svara([{ id: 47, bild: '47.jpg?v=1' }]);
   if (tabell === 'spelare') return svara(F.spelare);
   if (tabell === 'alias') return svara(q.get('n01_namn') ? [] : F.alias);
   if (tabell === 'hamtning') return svara(F.hamtning);
@@ -140,6 +148,15 @@ if ((await page.locator('#matchlista tbody tr').count()) !== 15) fel.push('spela
 await page.click('#alla-matcher');
 if ((await page.locator('#matchlista tbody tr').count()) !== 21) fel.push('spelarsidan: visa alla matcher');
 if ((await page.locator('#matchlista a.resultat').count()) !== 21) fel.push('spelarsidan: resultaten ska länka till matchen');
+if ((await page.locator('.portratt img').count()) !== 1) fel.push('porträtt saknas på spelarsidan');
+await page.setInputFiles('#bildfil', { name: 'bild.png', mimeType: 'image/png', buffer: PNG }); await page.waitForTimeout(800);
+if (!skrivningar.some((s) => s.startsWith('POST storage /storage/v1/object/portratt/47.jpg'))) fel.push('porträtt laddades inte upp: ' + skrivningar.slice(-3).join(' | '));
+if (!skrivningar.some((s) => s.startsWith('POST satt_bild') && /"bild":"47\.jpg\?v=\d+"/.test(s))) fel.push('satt_bild anropades inte');
+await page.waitForSelector('.spelform');
+await page.click('.spelform [data-form="301"]'); await page.waitForTimeout(300);
+if (!(await page.locator('.spelform [data-form="301"]').getAttribute('class')).includes('vald')) fel.push('spelform 301 väljs inte');
+await page.click('.spelform [data-form="alla"]'); await page.waitForTimeout(300);
+await page.click('[data-lage="match"]');
 const rekord = await page.locator('.rekordkort').count(); if (rekord < 6) fel.push('rekord: ' + rekord);
 await page.click('.rekordkort:has-text("Högsta utgång")');
 await page.waitForSelector('.leg');
@@ -173,6 +190,11 @@ if (snitt.some((v, i) => i && v > snitt[i - 1])) fel.push('sortering på snitt: 
 await page.click('[data-sort="namn"]');
 const namnLista = await page.locator('#spelarlista tbody tr td:first-child').allInnerTexts();
 if (namnLista.join() !== [...namnLista].sort((a, b) => a.localeCompare(b, 'sv')).join()) fel.push('sortering på namn');
+if ((await page.locator('#spelarlista img.avatar').count()) < 1) fel.push('avatar saknas i spelarlistan');
+await page.click('.spelform [data-form="501"]'); await page.waitForSelector('#spelarlista table');
+const antal501 = await page.locator('#spelarlista tbody tr').count();
+await page.click('.spelform [data-form="alla"]'); await page.waitForSelector('#spelarlista table');
+if (antal501 > (await page.locator('#spelarlista tbody tr').count())) fel.push('spelform filtrerar inte spelarlistan');
 await kontroll('5b-spelarlista');
 await page.click('a.info'); await page.waitForSelector('.nyhet');
 if ((await page.locator('.nyhet li').count()) < 1) fel.push('nyheter');

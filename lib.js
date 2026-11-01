@@ -110,8 +110,60 @@ export function datumTid(iso) {
 export const procent = (a, b) => (b ? `${Math.round((100 * a) / b)} %` : '–');
 export { tva };
 
-// Länk till en spelare: kopplad person eller okopplat n01-namn
+// ---------- porträtt (privat bucket "portratt", signerade länkar som gäller en timme) ----------
+let bilder = new Map();
+let bilderTid = 0;
+export async function laddaBilder(tvinga = false) {
+  if (!tvinga && Date.now() - bilderTid < 50 * 60_000) return;
+  const rader = await api('spelare?bild=not.is.null&select=id,bild');
+  const ny = new Map();
+  if (rader.length) {
+    const s = await session(true);
+    const r = await fetch(`${SUPABASE_URL}/storage/v1/object/sign/portratt`, {
+      method: 'POST',
+      headers: { apikey: SUPABASE_KEY, Authorization: `Bearer ${s.access_token}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ expiresIn: 3600, paths: rader.map((x) => x.bild.split('?')[0]) }),
+    });
+    if (r.ok) (await r.json()).forEach((x, i) => {
+      if (x.signedURL) ny.set(rader[i].id, `${SUPABASE_URL}/storage/v1${x.signedURL}&${rader[i].bild.split('?')[1] ?? ''}`);
+    });
+  }
+  bilder = ny; bilderTid = Date.now();
+}
+export const bildUrl = (id) => bilder.get(Number(id)) ?? null;
+export const avatar = (id, klass = 'avatar') => { const u = bildUrl(id); return u ? `<img class="${klass}" src="${esc(u)}" alt="" loading="lazy">` : ''; };
+
+// Bilden beskärs till en kvadrat och förminskas till 256×256 JPEG i webbläsaren före uppladdning
+async function kvadrat(fil, px = 256) {
+  const bmp = await createImageBitmap(fil);
+  const sida = Math.min(bmp.width, bmp.height);
+  const c = document.createElement('canvas'); c.width = px; c.height = px;
+  c.getContext('2d').drawImage(bmp, (bmp.width - sida) / 2, (bmp.height - sida) / 2, sida, sida, 0, 0, px, px);
+  return new Promise((ok) => c.toBlob(ok, 'image/jpeg', 0.85));
+}
+export async function laddaUppBild(id, fil) {
+  const blob = await kvadrat(fil);
+  const s = await session(true);
+  const r = await fetch(`${SUPABASE_URL}/storage/v1/object/portratt/${id}.jpg`, {
+    method: 'POST',
+    headers: { apikey: SUPABASE_KEY, Authorization: `Bearer ${s.access_token}`, 'Content-Type': 'image/jpeg', 'x-upsert': 'true' },
+    body: blob,
+  });
+  if (!r.ok) throw await fel(r);
+  await rpc('satt_bild', { sid: id, bild: `${id}.jpg?v=${Date.now()}` });
+  await laddaBilder(true);
+}
+export async function taBortBild(id) {
+  const s = await session(true);
+  await fetch(`${SUPABASE_URL}/storage/v1/object/portratt/${id}.jpg`, {
+    method: 'DELETE', headers: { apikey: SUPABASE_KEY, Authorization: `Bearer ${s.access_token}` },
+  });
+  await rpc('satt_bild', { sid: id, bild: null });
+  await laddaBilder(true);
+}
+
+// Länk till en spelare: kopplad person (med porträtt om det finns) eller okopplat n01-namn
 export function spelarlank(namn, spelareId) {
-  if (spelareId) return `<a href="#/spelare/${spelareId}">${esc(namn)}</a>`;
+  if (spelareId) return `<a href="#/spelare/${spelareId}">${avatar(spelareId)}${esc(namn)}</a>`;
   return `<a href="#/namn/${encodeURIComponent(namn)}" class="okopplad" title="Inte kopplad till en person än">${esc(namn)}</a>`;
 }

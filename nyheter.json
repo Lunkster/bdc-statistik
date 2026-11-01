@@ -1,5 +1,13 @@
 [
  {
+  "datum": "2026-11-01",
+  "punkter": [
+   "Porträtt: lägg upp en bild på en spelare överst på spelarsidan (Lägg till bild – i mobilen går det att ta ett foto direkt). Bilden syns som en liten rund ikon vid namnet i alla tabeller (v0.7.0)",
+   "Spelarsidan och spelarlistan kan visa statistiken per spelform: 501 (torsdagar) eller 301 och handikapp (söndagar). Då blir bästa leg, pilar per leg och rekorden rättvisa att jämföra (v0.7.0)",
+   "På en turnering som ingår i en cup finns en knapp till cupens poängtabell (v0.6.1)"
+  ]
+ },
+ {
   "datum": "2026-10-31",
   "punkter": [
    "I varje leg syns nu ställningen: under de kastade poängen står vad som är kvar, och första rutan visar startpoängen – både i klubbens matcher och i distriktsserien (v0.5.2)",

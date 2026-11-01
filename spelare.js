@@ -1,18 +1,29 @@
 // Spelarsida (kopplad person eller okopplat n01-namn) med grafer och rekord, samt spelarlista
-import { api, esc, fmt, heltal, spelarlank } from './lib.js?v=0.6.1';
-import { tidsdiagram } from './diagram.js?v=0.6.1';
+import { api, esc, fmt, heltal, spelarlank, bildUrl, laddaUppBild, taBortBild } from './lib.js?v=0.7.0';
+import { tidsdiagram } from './diagram.js?v=0.7.0';
 
 let vyLage = 'turnering';   // 'turnering' | 'match' – minns mellan spelare
 
 let listSort = { k: 't', dir: -1 };   // kolumn och riktning (-1 = störst först) – minns mellan besök
 
+// Spelform (beslut Henrik 2026-11-01): söndagscuperna spelas i 301 (sedan sommaren med handikapp 301–421),
+// torsdagarna i 501. Bästa leg och pilar per leg går bara att jämföra inom samma spelform.
+let spelform = 'alla';   // 'alla' | '501' | '301' – minns mellan sidor
+const formAv = (startpoang) => (Number(startpoang) >= 501 ? '501' : '301');
+const FORMER = [['alla', 'Alla'], ['501', '501'], ['301', '301 och handikapp']];
+const formVal = (antal) => `<div class="filter spelform" role="group" aria-label="Spelform">${FORMER.map(([k, n]) =>
+  `<button type="button" class="chip${spelform === k ? ' vald' : ''}" data-form="${k}">${n}${antal ? ` <small>${antal[k] ?? 0}</small>` : ''}</button>`).join('')}</div>`;
+const FORMTEXT = 'Söndagscuperna spelas i 301 – sedan sommaren med handikapp (301–421) – och torsdagarna i 501. Bästa leg och pilar per leg går bara att jämföra inom samma spelform; välj 501 eller 301 för rättvisa rekord.';
+
 export async function visaSpelarlista(app) {
   const [spelare, rader] = await Promise.all([
     api('spelare?select=id,namn,visningsnamn&aktiv=eq.true&order=namn'),
-    api('v_turnering_statistik?select=spelare_id,namn,poang,pilar,placering,t180,f9_poang,f9_pilar,matcher,vunna_matcher'),
+    api('v_turnering_statistik?select=tdid,spelare_id,namn,poang,pilar,placering,t180,f9_poang,f9_pilar,matcher,vunna_matcher'),
   ]);
+  const start = Object.fromEntries((await api('turnering?select=tdid,startpoang')).map((t) => [t.tdid, t.startpoang]));
   const sum = new Map();
   for (const r of rader) {
+    if (spelform !== 'alla' && formAv(start[r.tdid]) !== spelform) continue;
     if (!r.namn && !r.spelare_id) continue;
     const k = r.spelare_id ? `s${r.spelare_id}` : `n${r.namn}`;
     const s = sum.get(k) ?? { id: r.spelare_id, namn: r.namn, t: 0, p: 0, d: 0, f9p: 0, f9d: 0, t180: 0, m: 0, mv: 0, segrar: 0 };
@@ -44,8 +55,13 @@ export async function visaSpelarlista(app) {
   };
   app.innerHTML = `
     <h1>Spelare</h1>
+    ${formVal()}
     <p class="muted">${lista.length - okopplade} spelare i registret${okopplade ? ` och ${okopplade} namn från n01 som inte är kopplade till en person än (kursiva)` : ''}. Tryck på en rubrik för att sortera.</p>
     <div class="rulla" id="spelarlista"></div>`;
+  app.querySelector('.spelform').addEventListener('click', (e) => {
+    const b = e.target.closest('[data-form]'); if (!b) return;
+    spelform = b.dataset.form; visaSpelarlista(app);
+  });
   app.querySelector('#spelarlista').addEventListener('click', (e) => {
     const b = e.target.closest('[data-sort]'); if (!b) return;
     const n = b.dataset.sort, std = kol.find((x) => x[0] === n)[2];
@@ -65,7 +81,24 @@ export async function visaSpelare(app, id) {
   const ds = await api(`v_ds_spelare?spelare_id=eq.${id}&select=*`).catch(() => []);
   if (!p) { app.innerHTML = '<p class="fel">Spelaren finns inte.</p>'; return; }
   const namnen = [...new Set(alias.map((a) => a.n01_namn))].join(', ');
-  await rita(app, p.namn, turn, matcher, `Heter i n01: ${esc(namnen)}`, dsHtml(ds));
+  const initialer = p.namn.split(' ').map((d) => d[0]).join('').slice(0, 2).toUpperCase();
+  const huvud = () => { const u = bildUrl(id); return `<div class="portratt">
+      ${u ? `<img src="${esc(u)}" alt="Porträtt av ${esc(p.namn)}">` : `<span class="tom" aria-hidden="true">${esc(initialer)}</span>`}
+      <div class="knappar"><label class="btn liten sekundar">${u ? 'Byt bild' : 'Lägg till bild'}<input type="file" accept="image/*" id="bildfil"></label>
+        ${u ? '<button type="button" class="btn liten sekundar" id="tabortbild">Ta bort bild</button>' : ''}
+        <small class="muted" id="bildsvar" role="status"></small></div></div>`; };
+  const efter = (app) => {
+    app.querySelector('#bildfil')?.addEventListener('change', async (e) => {
+      const fil = e.target.files?.[0]; if (!fil) return;
+      app.querySelector('#bildsvar').textContent = 'Laddar upp …';
+      try { await laddaUppBild(id, fil); await visaSpelare(app, id); } catch (err) { app.querySelector('#bildsvar').textContent = `Fel: ${err.message}`; }
+    });
+    app.querySelector('#tabortbild')?.addEventListener('click', async () => {
+      if (!confirm(`Ta bort bilden för ${p.namn}?`)) return;
+      try { await taBortBild(id); await visaSpelare(app, id); } catch (err) { app.querySelector('#bildsvar').textContent = `Fel: ${err.message}`; }
+    });
+  };
+  await rita(app, p.namn, turn, matcher, `Heter i n01: ${esc(namnen)}`, dsHtml(ds), huvud, efter);
 }
 
 export async function visaNamn(app, namn) {
@@ -93,10 +126,16 @@ function dsHtml(rader) {
     <p class="muted liten">Ingår inte i statistiken ovan, som gäller klubbens turneringar.</p>`;
 }
 
-async function rita(app, rubrik, turnRader, matcher, under, extra = '') {
-  const tdids = [...new Set(turnRader.map((r) => r.tdid).concat(matcher.map((m) => m.tdid)))];
-  const turnInfo = tdids.length ? await api(`v_turnering?tdid=in.(${tdids.map((t) => `"${t}"`).join(',')})&select=tdid,datum,serie,omgang,titel,deltagare`) : [];
+async function rita(app, rubrik, allaTurn, allaMatcher, under, extra = '', huvud = null, efter = null) {
+  const tdids = [...new Set(allaTurn.map((r) => r.tdid).concat(allaMatcher.map((m) => m.tdid)))];
+  const turnInfo = tdids.length ? await api(`v_turnering?tdid=in.(${tdids.map((t) => `"${t}"`).join(',')})&select=tdid,datum,serie,omgang,titel,deltagare,startpoang`) : [];
   const T = Object.fromEntries(turnInfo.map((x) => [x.tdid, x]));
+  // Spelform: bara turneringar och matcher i vald form
+  const iForm = (tdid) => spelform === 'alla' || formAv(T[tdid]?.startpoang) === spelform;
+  const turnRader = allaTurn.filter((r) => iForm(r.tdid));
+  const matcher = allaMatcher.filter((m) => iForm(m.tdid));
+  const antal = { alla: allaTurn.length };
+  allaTurn.forEach((r) => { const f = formAv(T[r.tdid]?.startpoang); antal[f] = (antal[f] ?? 0) + 1; });
   const tnamn = (tdid) => { const t = T[tdid] ?? {}; return `${t.serie ?? t.titel ?? tdid}${t.omgang ? ` ${t.omgang}` : ''}`; };
 
   // Per turnering: n01:s siffror kompletterade med rundstatistik ur matcherna
@@ -142,7 +181,10 @@ async function rita(app, rubrik, turnRader, matcher, under, extra = '') {
   app.innerHTML = `
     <p><a href="#/spelare" class="tillbaka">← Spelare</a></p>
     <h1>${esc(rubrik)}</h1>
+    ${huvud ? huvud() : ''}
     <p class="muted liten">${under}</p>
+    ${formVal(antal)}
+    <p class="muted liten">${FORMTEXT}</p>
     <div class="nyckeltal">${nyckel.map(([n, v]) => `<div class="kort"><span class="muted">${n}</span><b>${v}</b></div>`).join('')}</div>
     <h2>Rekord</h2>
     <div class="rekord">${rek.map(([n, x, v, lank, txt]) => `<a class="kort rekordkort" href="${lank(x)}">
@@ -169,11 +211,11 @@ async function rita(app, rubrik, turnRader, matcher, under, extra = '') {
     <div class="rulla" id="matchlista"></div>${extra}`;
 
   // Alla matcher med länk till matchsidan (de senaste 15, resten bakom en knapp)
-  const allaMatcher = [...matcher].sort((a, b) => ms(b.datum, b.starttid) - ms(a.datum, a.starttid));
+  const sorteradeMatcher = [...matcher].sort((a, b) => ms(b.datum, b.starttid) - ms(a.datum, a.starttid));
   let visaAlla = false;
   const ritaMatcher = () => {
-    const lista = visaAlla ? allaMatcher : allaMatcher.slice(0, 15);
-    document.getElementById('matchlista').innerHTML = allaMatcher.length ? `<table class="tabell matchtabell">
+    const lista = visaAlla ? sorteradeMatcher : sorteradeMatcher.slice(0, 15);
+    document.getElementById('matchlista').innerHTML = sorteradeMatcher.length ? `<table class="tabell matchtabell">
       <thead><tr><th class="fast">Datum</th><th>Resultat</th><th>Mot</th><th>Snitt</th><th>F9</th><th>HO</th><th>Turnering</th></tr></thead>
       <tbody>${lista.map((m) => `<tr>
         <td class="fast">${esc(m.datum ?? '')}</td>
@@ -181,7 +223,7 @@ async function rita(app, rubrik, turnRader, matcher, under, extra = '') {
         <td class="vanster">${spelarlank(m.mot_namn ?? '?', m.mot_spelare_id)}</td>
         <td>${fmt(m.snitt, 2)}</td><td>${fmt(m.snitt_f9, 2)}</td><td>${m.hogsta_utgang ?? ''}</td>
         <td class="vanster"><a href="${tlank(m)}">${esc(tnamn(m.tdid))}</a> <small class="muted">${ttypNamn(m)}</small></td></tr>`).join('')}</tbody>
-    </table>${allaMatcher.length > 15 ? `<p><button type="button" class="btn liten sekundar" id="alla-matcher">${visaAlla ? 'Visa färre' : `Visa alla ${allaMatcher.length} matcher`}</button></p>` : ''}`
+    </table>${sorteradeMatcher.length > 15 ? `<p><button type="button" class="btn liten sekundar" id="alla-matcher">${visaAlla ? 'Visa färre' : `Visa alla ${sorteradeMatcher.length} matcher`}</button></p>` : ''}`
       : '<p class="muted">Inga matcher.</p>';
     document.getElementById('alla-matcher')?.addEventListener('click', () => { visaAlla = !visaAlla; ritaMatcher(); });
   };
@@ -213,4 +255,9 @@ async function rita(app, rubrik, turnRader, matcher, under, extra = '') {
     vyLage = b.dataset.lage; ritaGrafer();
   });
   ritaGrafer();
+  app.querySelector('.spelform').addEventListener('click', (e) => {
+    const b = e.target.closest('[data-form]'); if (!b) return;
+    spelform = b.dataset.form; rita(app, rubrik, allaTurn, allaMatcher, under, extra, huvud, efter);
+  });
+  efter?.(app);
 }
