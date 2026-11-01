@@ -1,6 +1,6 @@
 // Tävlingslistan: alla tävlingar, nyast först, filter på serie
-import { api, esc } from './lib.js?v=0.9.7';
-import { visaKarusell } from './karusell.js?v=0.9.7';
+import { api, esc } from './lib.js?v=0.9.8';
+import { visaKarusell } from './karusell.js?v=0.9.8';
 
 let valdSerie = '';
 

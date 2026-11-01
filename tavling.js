@@ -1,6 +1,6 @@
 // Tävlingssida: samma statistik som n01:s statistiksida, grupper, slutspel och matcherna i tidsordning
-import { api, esc, fmt, heltal, spelarlank, datumTid } from './lib.js?v=0.9.7';
-import { checkoutUppskattad, besokUrN01 } from './utgang.js?v=0.9.7';
+import { api, esc, fmt, heltal, spelarlank, datumTid } from './lib.js?v=0.9.8';
+import { checkoutUppskattad, besokUrN01 } from './utgang.js?v=0.9.8';
 
 const pct = (v) => (v == null ? '–' : `${fmt(v, 1)} %`);
 const OMG = { '-1': 'F', '-2': 'SF', '-3': 'KF', '-4': 'ÅF' };
@@ -61,7 +61,7 @@ export async function visaTavling(app, tdid) {
   const q = encodeURIComponent(tdid);
   const [[t], [rad], stat, matcher] = await Promise.all([
     api(`v_turnering?tdid=eq.${q}&select=*`),
-    api(`turnering?tdid=eq.${q}&select=rr_table:data->rr_table,rr_result:data->rr_result,rr_title:data->rr_title,t_title:data->t_title,t_table:data->t_table,t_result:data->t_result`),
+    api(`turnering?tdid=eq.${q}&select=rr_table:data->rr_table,rr_result:data->rr_result,rr_title:data->rr_title,t_title:data->t_title,t_table:data->t_table,t_result:data->t_result,rr_setting:data->rr_setting,t_setting:data->t_setting`),
     api(`v_turnering_statistik?tdid=eq.${q}&select=*`),
     api(`v_match?tdid=eq.${q}&select=*&order=ttype,rond,t_no`),
   ]);
@@ -112,6 +112,7 @@ export async function visaTavling(app, tdid) {
     <h1>${esc(t.serie ?? t.titel)}${t.omgang ? ` <span class="muted">omg ${t.omgang}</span>` : ''}</h1>
     <p class="muted">${esc(t.datum ?? '')} · ${t.deltagare} spelare · ${t.matcher} matcher${t.startpoang ? ` · ${t.startpoang}` : ''}
       · <a href="${esc(t.n01_url)}" target="_blank" rel="noopener">Öppna i n01 ↗</a></p>
+    ${rundregel(rad)}
     ${cupLankar ? `<div class="filter cuplankar">${cupLankar}</div>` : ''}
     ${t.vinnare ? `<p class="vinnarrad">🏆 ${spelarlank(t.vinnare, t.vinnare_id)}</p>` : ''}
     <div class="topplistor">
@@ -311,4 +312,16 @@ function slutspelstrad(matcher, rad, perTpid) {
   return `<h2>Slutspel</h2>
     <p class="muted liten">Tryck på siffrorna för att se matchens protokoll. Dra i sidled för att se hela trädet.</p>
     <div class="trad-rulla"><div class="trad">${kolumner.join('')}</div></div>`;
+}
+
+// Rundgräns (v0.9.8, önskemål Henrik 2026-11-02): n01:s inställning per tävling – limit = 1 betyder att
+// ett leg som inte är avgjort efter "rounds" rundor avgörs med närmast bull. Gruppspel och slutspel kan skilja.
+function rundregel(rad) {
+  const grans = (x) => (x && Number(x.limit) === 1 && Number(x.rounds) > 0 ? Number(x.rounds) : null);
+  const g = rad?.rr_setting?.round_robin ? grans(rad.rr_setting) : null;
+  const t = rad?.t_setting?.tournament ? grans(rad.t_setting) : null;
+  if (!g && !t) return '';
+  const text = (n) => `max ${n} rundor (${3 * n} pilar var)`;
+  const del = g && t && g !== t ? `gruppspel ${text(g)}, slutspel ${text(t)}` : text(g ?? t);
+  return `<p class="rundregel">🎯 Regel: ${del} per leg – är ingen ute då avgör <b>närmast bull</b>.</p>`;
 }

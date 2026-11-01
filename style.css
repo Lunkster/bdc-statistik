@@ -388,3 +388,7 @@ body.tv main { max-width: none; }
 .tr-kol + .tr-kol .tr-match::before { content: ''; position: absolute; left: calc(-1rem - 1px); top: 50%; width: 1rem; border-top: 2px solid var(--linje); }
 .tr-kol.final .tr-match::after { content: ''; position: absolute; right: -2rem; top: 50%; width: 2rem; border-top: 2px solid var(--rosa); }
 .tr-kol.vinnare .tr-match::before { display: none; }
+
+/* Rundgräns (v0.9.8) */
+.rundregel { display: inline-block; background: var(--yta2); border: 1px solid var(--linje); border-radius: var(--radie); padding: .3rem .8rem; font-size: .88rem; margin: .2rem 0 .6rem; }
+.rundregel b { color: var(--mint); }

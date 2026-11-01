@@ -1,7 +1,7 @@
 // Matchprotokoll som n01 (v0.9.3, önskemål Henrik 2026-11-01): statistik med Detaljer att fälla ut
 // och varje leg uppifrån och ned (Poäng | Kvar | pilar | Poäng | Kvar). Används av match.js och serien.js.
-import { esc, fmt } from './lib.js?v=0.9.7';
-import { utgangslage, checkoutUppskattad } from './utgang.js?v=0.9.7';
+import { esc, fmt } from './lib.js?v=0.9.8';
+import { utgangslage, checkoutUppskattad } from './utgang.js?v=0.9.8';
 
 const NYCKEL = 'bdc-detaljer';
 const intervall = (k, fran, till) => k.filter((x) => x.poang >= fran && x.poang <= till).length;
@@ -83,7 +83,7 @@ export function legsHtml(legs, kast, namn) {
     const rader = Array.from({ length: antal }, (_, i) => `<tr>${celler(sida[0][i])}<td class="pilnr">${3 * (i + 1)}</td>${celler(sida[1][i])}</tr>`).join('');
     return `<div class="kort leg">
       <div class="leghuvud">${huvud(0)}<b>Leg ${l.nr + 1}</b>${huvud(1)}</div>
-      ${l.mfd ? '<p class="muted liten">Avgjort med närmast bull.</p>' : ''}
+      ${l.mfd ? `<p class="muted liten">Ingen ute efter ${antal} rundor – avgjort med närmast bull.</p>` : ''}
       <table class="protokoll">
         <thead><tr><th>Poäng</th><th>Kvar</th><th></th><th>Poäng</th><th>Kvar</th></tr></thead>
         <tbody><tr class="start"><td></td><td class="kvar">${start(sida[0])}</td><td class="pilnr"></td><td></td><td class="kvar">${start(sida[1])}</td></tr>${rader}</tbody>

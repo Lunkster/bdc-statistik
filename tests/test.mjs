@@ -177,6 +177,8 @@ if ((await page.locator('.tr-kol').count()) !== 3) fel.push('slutspelsträd: ska
 if ((await page.locator('.tr-poang').count()) !== 6) fel.push('slutspelsträd: siffrorna ska länka till matcherna');
 if (!(await page.locator('.vinnarkort').innerText()).includes('Ada')) fel.push('slutspelsträd: vinnaren ska vara Ada');
 if ((await page.locator('.tr-kol >> nth=0 >> h3').innerText()) !== 'Semifinal') fel.push('slutspelsträd: fribiljettronden ska inte visas');
+const regel = await page.locator('.rundregel').innerText();
+if (!regel.includes('gruppspel max 13 rundor (39 pilar var)') || !regel.includes('slutspel max 9 rundor (27 pilar var)')) fel.push('rundregel: ' + regel);
 await page.click('.tidslinje summary');
 if ((await page.locator('.tl-rad').count()) !== 4) fel.push('tidslinje: ska visa 4 matcher');
 const tl1 = await page.locator('.tl-huvud >> nth=0').innerText();
