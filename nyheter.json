@@ -2,6 +2,7 @@
  {
   "datum": "2026-11-01",
   "punkter": [
+   "Karusellen visar nu tydliga tabeller, och i helskärm fyller den hela skärmen och byter bild av sig själv (v0.8.1)",
    "Ny flik Rekord: klubbrekorden på 501 – bästa leg, högsta utgång, flest 180:or och högsta snitt i en match och en turnering, topp 10 i varje (v0.8.0)",
    "Startsidan har fått en karusell med topplistorna i de pågående cuperna, distriktsseriens tabeller och klubbrekorden. Tryck på Helskärm för att visa den på en skärm i klubblokalen (v0.8.0)",
    "På spelarsidan går tabellerna Turneringar och Matcher att sortera – tryck på en rubrik (v0.7.1)",

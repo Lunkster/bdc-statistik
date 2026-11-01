@@ -113,7 +113,8 @@ await page.waitForSelector('.turnrad');
 if (await page.locator('#adminlank').isVisible()) fel.push('medlem ser adminlänken');
 await page.waitForSelector('.karusell .bild');
 if ((await page.locator('.karusell .bild').count()) < 3) fel.push('karusell: för få bilder ' + await page.locator('.karusell .bild').count());
-if ((await page.locator('.karusell .bild li.vart').count()) !== 1) fel.push('karusell: Bankeryd markeras inte i serietabellen');
+if ((await page.locator('.karusell .bild tr.vart').count()) !== 1) fel.push('karusell: Bankeryd markeras inte i serietabellen');
+if ((await page.locator('.karusell .kartabell').count()) < 3) fel.push('karusell: tabeller saknas');
 await page.click('.karusell .prick >> nth=1'); await page.waitForTimeout(600);
 if (!(await page.locator('.karusell .prick >> nth=1').getAttribute('class')).includes('vald')) fel.push('karusell: prickarna byter inte bild');
 await page.click('.karusell .prick >> nth=0'); await page.waitForTimeout(600);
@@ -128,8 +129,11 @@ if (!(await page.locator('.rekordlista >> nth=0').innerText()).includes('15 pila
 if (!(await page.locator('.rekordsida').innerText()).includes('100,20')) fel.push('rekord: decimalkomma');
 await kontroll('2b-rekord');
 await page.goto(B + '#/karusell'); await page.waitForSelector('.karusell.helskarm');
+await page.mouse.move(200, 300);   // musen över karusellen ska inte stoppa den i helskärm
+await page.waitForFunction(() => document.querySelector('.karusell .prick.vald')?.dataset.i === '1', null, { timeout: 20000 }).catch(() => fel.push('karusell: helskärm startar inte av sig själv'));
 if (await page.locator('.topbar').isVisible()) fel.push('karusell: menyn syns i helskärm');
 await kontroll('2c-karusell');
+await page.setViewportSize({ width: 1920, height: 1080 }); await page.waitForTimeout(300); await page.screenshot({ path: '/tmp/bdc-2d-karusell-tv.png' }); await page.setViewportSize({ width: 390, height: 844 });
 await page.click('.karusell a:text("Stäng")'); await page.waitForSelector('.turnrad');
 if (!(await page.locator('.topbar').isVisible())) fel.push('karusell: menyn kommer inte tillbaka');
 // 3. Turnering
