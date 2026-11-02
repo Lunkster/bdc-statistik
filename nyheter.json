@@ -2,7 +2,7 @@
  {
   "datum": "2026-11-02",
   "punkter": [
-   "Spelarsidan har tre flikar: Statistik (nyckeltal, rekord, utveckling och distriktsserien), Tävlingar och Matcher. Valet av spelform gäller alla flikar, och länken till en flik går att dela (v0.10.1)",
+   "Spelarsidan har tre flikar: Statistik (nyckeltal, rekord och utveckling), Tävlingar (distriktsserien överst för de som spelar i serien, sedan klubbens tävlingar) och Matcher. Valet av spelform gäller alla flikar, och länken till en flik går att dela (v0.10.1, v0.10.2)",
    "Slutspelsträdet är kompaktare och får plats utan att rulla i sidled på dator. Vinnarrutan är borttagen – vinnaren står överst och i fetstil i finalen, som har rosa ram (v0.10.0)",
    "Tävlingssidan har tre flikar: Resultat (vinnaren, slutspelsträdet och gruppspelet), Matcher (alla matcher i tidsordning) och Statistik (topplistor och statistiktabellen). Länken till en flik går att dela (v0.9.9)",
    "Varje tävling visar nu sin rundgräns överst, t.ex. \"max 9 rundor (27 pilar var) per leg – är ingen ute då avgör närmast bull\". I matchprotokollet står det vid legs som avgjorts med bull (v0.9.8)",

@@ -1,7 +1,7 @@
 // Matchprotokoll som n01 (v0.9.3, önskemål Henrik 2026-11-01): statistik med Detaljer att fälla ut
 // och varje leg uppifrån och ned (Poäng | Kvar | pilar | Poäng | Kvar). Används av match.js och serien.js.
-import { esc, fmt } from './lib.js?v=0.10.1';
-import { utgangslage, checkoutUppskattad } from './utgang.js?v=0.10.1';
+import { esc, fmt } from './lib.js?v=0.10.2';
+import { utgangslage, checkoutUppskattad } from './utgang.js?v=0.10.2';
 
 const NYCKEL = 'bdc-detaljer';
 const intervall = (k, fran, till) => k.filter((x) => x.poang >= fran && x.poang <= till).length;

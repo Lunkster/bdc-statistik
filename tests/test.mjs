@@ -233,6 +233,9 @@ if (msnitt2.some((v, i) => i && v < msnitt2[i - 1])) fel.push('matchlistan vänd
 await page.click('#matchlista [data-sort="datum"]');
 await page.click('.spelarflikar [data-flik="tavlingar"]');
 if (!(await page.locator('#turnlista table').isVisible())) fel.push('spelarsidan: fliken Tävlingar visar inte tabellen');
+const dsOrdning = await page.evaluate(() => { const p = document.querySelector('[data-panel="tavlingar"]'); const h = [...p.querySelectorAll('h2')].map((x) => x.textContent); return h.join(','); });
+if (dsOrdning !== 'Distriktsserien,Klubbens tävlingar') fel.push('spelarsidan: distriktsserien ska stå överst under Tävlingar: ' + dsOrdning);
+if ((await page.locator('[data-panel="statistik"] h2:has-text("Distriktsserien")').count()) !== 0) fel.push('spelarsidan: distriktsserien ska inte ligga under Statistik');
 if ((await page.locator('#turnlista [data-sort="snitt"]').count()) !== 1) fel.push('turneringstabellen saknar sortering');
 await page.setInputFiles('#bildfil', { name: 'bild.png', mimeType: 'image/png', buffer: PNG }); await page.waitForTimeout(800);
 if (!skrivningar.some((s) => s.startsWith('POST storage /storage/v1/object/portratt/47.jpg'))) fel.push('porträtt laddades inte upp: ' + skrivningar.slice(-3).join(' | '));
@@ -321,7 +324,7 @@ await page.click('.delmatcher a[href="#/dsmatch/dm1"] >> nth=0'); await page.wai
 if ((await page.locator('.leg').count()) !== 3) fel.push('dsmatch: legs');
 if (!(await page.locator('.jamfor').innerText()).includes(',')) fel.push('dsmatch: decimalkomma');
 await kontroll('4f-dsmatch');
-await page.goto(B + '#/spelare/47'); await page.waitForSelector('.nyckeltal');
+await page.goto(B + '#/spelare/47/tavlingar'); await page.waitForSelector('.spelarflikar');
 await page.waitForSelector('a[href="#/serien/t_div2"]');
 if (!(await page.locator('main').innerText()).includes('6–8')) fel.push('spelarsidan: distriktsserien saknas');
 await page.goto(B + '#/serien/t_div3'); await page.waitForSelector('h1');

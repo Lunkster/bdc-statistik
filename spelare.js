@@ -1,6 +1,6 @@
 // Spelarsida (kopplad person eller okopplat n01-namn) med grafer och rekord, samt spelarlista
-import { api, esc, fmt, heltal, spelarlank, bildUrl, laddaUppBild, taBortBild } from './lib.js?v=0.10.1';
-import { tidsdiagram } from './diagram.js?v=0.10.1';
+import { api, esc, fmt, heltal, spelarlank, bildUrl, laddaUppBild, taBortBild } from './lib.js?v=0.10.2';
+import { tidsdiagram } from './diagram.js?v=0.10.2';
 
 let vyLage = 'tavling';   // 'tavling' | 'match' – minns mellan spelare
 
@@ -144,7 +144,7 @@ function dsHtml(rader) {
         <td>${r.singlar_vunna}–${r.singlar}</td><td>${r.dubblar_vunna}–${r.dubblar}</td><td>${r.vunna_legs}–${r.legs}</td>
         <td>${fmt(r.snitt, 2)}</td><td>${fmt(r.snitt_f9, 2)}</td><td>${r.t180 || ''}</td><td>${r.high_out ?? ''}</td><td>${r.basta_leg ?? ''}</td></tr>`).join('')}</tbody>
     </table></div>
-    <p class="muted liten">Ingår inte i statistiken ovan, som gäller klubbens tävlingar.</p>`;
+    <p class="muted liten">Räknas inte in i klubbens tävlingar nedan eller under Statistik.</p>`;
 }
 
 // Flikar på spelarsidan (v0.10.1, önskemål Henrik 2026-11-02): #/spelare/<id>[/tavlingar|/matcher]
@@ -225,10 +225,10 @@ async function rita(app, rubrik, allaTurn, allaMatcher, under, extra = '', huvud
     </div>
     <div id="grafer"></div>
     <p class="muted liten">Pilar per leg och bästa leg räknar bara legs som vunnits med pilar – inte legs avgjorda med närmast bull (middle for diddle). Peka eller tryck på en punkt för att se värdet; klicka (eller tryck igen) för att öppna matchen eller tävlingen.</p>
-    ${extra}
     </section>
     <section class="flikpanel" data-panel="tavlingar"${valdFlik === 'tavlingar' ? '' : ' hidden'}>
-    <h2>Tävlingar</h2>
+    ${extra}
+    <h2>${extra ? 'Klubbens tävlingar' : 'Tävlingar'}</h2>
     <p class="muted liten">Tryck på en rubrik för att sortera, och på tävlingen för att öppna den.</p>
     <div class="rulla" id="turnlista"></div>
     </section>
