@@ -1,6 +1,6 @@
 // Matchsida: resultat, statistik (med Detaljer) och protokoll per leg som n01
-import { api, esc, spelarlank } from './lib.js?v=0.10.0';
-import { rakna, statistikHtml, legsHtml, protokollSida, koppla } from './protokoll.js?v=0.10.0';
+import { api, esc, spelarlank } from './lib.js?v=0.10.1';
+import { rakna, statistikHtml, legsHtml, protokollSida, koppla } from './protokoll.js?v=0.10.1';
 
 export async function visaMatch(app, mid) {
   const q = encodeURIComponent(mid);

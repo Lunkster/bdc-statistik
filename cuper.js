@@ -1,5 +1,5 @@
 // Cuper: lista och poängtabell per cup med klubbens poängregler
-import { api, esc, spelarlank } from './lib.js?v=0.10.0';
+import { api, esc, spelarlank } from './lib.js?v=0.10.1';
 
 const KOL = [
   // nyckel, rubrik, förklaring, regel som avgör om kolumnen visas

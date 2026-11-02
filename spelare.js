@@ -1,6 +1,6 @@
 // Spelarsida (kopplad person eller okopplat n01-namn) med grafer och rekord, samt spelarlista
-import { api, esc, fmt, heltal, spelarlank, bildUrl, laddaUppBild, taBortBild } from './lib.js?v=0.10.0';
-import { tidsdiagram } from './diagram.js?v=0.10.0';
+import { api, esc, fmt, heltal, spelarlank, bildUrl, laddaUppBild, taBortBild } from './lib.js?v=0.10.1';
+import { tidsdiagram } from './diagram.js?v=0.10.1';
 
 let vyLage = 'tavling';   // 'tavling' | 'match' – minns mellan spelare
 
@@ -71,7 +71,8 @@ export async function visaSpelarlista(app) {
   rita();
 }
 
-export async function visaSpelare(app, id) {
+export async function visaSpelare(app, id, flikArg) {
+  if (flikArg !== undefined) valdFlik = SFLIKAR.some(([k]) => k === flikArg) ? flikArg : 'statistik';
   const [[p], turn, matcher, alias] = await Promise.all([
     api(`spelare?id=eq.${id}&select=*`),
     api(`v_turnering_statistik?spelare_id=eq.${id}&select=*`),
@@ -91,17 +92,18 @@ export async function visaSpelare(app, id) {
     app.querySelector('#bildfil')?.addEventListener('change', async (e) => {
       const fil = e.target.files?.[0]; if (!fil) return;
       app.querySelector('#bildsvar').textContent = 'Laddar upp …';
-      try { await laddaUppBild(id, fil); await visaSpelare(app, id); } catch (err) { app.querySelector('#bildsvar').textContent = `Fel: ${err.message}`; }
+      try { await laddaUppBild(id, fil); await visaSpelare(app, id, valdFlik); } catch (err) { app.querySelector('#bildsvar').textContent = `Fel: ${err.message}`; }
     });
     app.querySelector('#tabortbild')?.addEventListener('click', async () => {
       if (!confirm(`Ta bort bilden för ${p.namn}?`)) return;
-      try { await taBortBild(id); await visaSpelare(app, id); } catch (err) { app.querySelector('#bildsvar').textContent = `Fel: ${err.message}`; }
+      try { await taBortBild(id); await visaSpelare(app, id, valdFlik); } catch (err) { app.querySelector('#bildsvar').textContent = `Fel: ${err.message}`; }
     });
   };
   await rita(app, p.namn, turn, matcher, `Heter i n01: ${esc(namnen)}`, dsHtml(ds), huvud, efter);
 }
 
-export async function visaNamn(app, namn) {
+export async function visaNamn(app, namn, flikArg) {
+  if (flikArg !== undefined) valdFlik = SFLIKAR.some(([k]) => k === flikArg) ? flikArg : 'statistik';
   const q = encodeURIComponent(namn);
   const [turn, matcher] = await Promise.all([
     api(`v_turnering_statistik?namn=eq.${q}&spelare_id=is.null&select=*`),
@@ -144,6 +146,10 @@ function dsHtml(rader) {
     </table></div>
     <p class="muted liten">Ingår inte i statistiken ovan, som gäller klubbens tävlingar.</p>`;
 }
+
+// Flikar på spelarsidan (v0.10.1, önskemål Henrik 2026-11-02): #/spelare/<id>[/tavlingar|/matcher]
+const SFLIKAR = [['statistik', 'Statistik'], ['tavlingar', 'Tävlingar'], ['matcher', 'Matcher']];
+let valdFlik = 'statistik';
 
 async function rita(app, rubrik, allaTurn, allaMatcher, under, extra = '', huvud = null, efter = null) {
   const tdids = [...new Set(allaTurn.map((r) => r.tdid).concat(allaMatcher.map((m) => m.tdid)))];
@@ -204,6 +210,10 @@ async function rita(app, rubrik, allaTurn, allaMatcher, under, extra = '', huvud
     <p class="muted liten">${under}</p>
     ${formVal(antal)}
     <p class="muted liten">${FORMTEXT}</p>
+    <nav class="filter tavlingsflikar spelarflikar" role="tablist" aria-label="Spelaren">
+      ${SFLIKAR.map(([k, n]) => `<button type="button" role="tab" class="chip${k === valdFlik ? ' vald' : ''}" data-flik="${k}" aria-selected="${k === valdFlik}">${n}</button>`).join('')}
+    </nav>
+    <section class="flikpanel" data-panel="statistik"${valdFlik === 'statistik' ? '' : ' hidden'}>
     <div class="nyckeltal">${nyckel.map(([n, v]) => `<div class="kort"><span class="muted">${n}</span><b>${v}</b></div>`).join('')}</div>
     <h2>Rekord</h2>
     <div class="rekord">${rek.map(([n, x, v, lank, txt]) => `<a class="kort rekordkort" href="${lank(x)}">
@@ -215,11 +225,18 @@ async function rita(app, rubrik, allaTurn, allaMatcher, under, extra = '', huvud
     </div>
     <div id="grafer"></div>
     <p class="muted liten">Pilar per leg och bästa leg räknar bara legs som vunnits med pilar – inte legs avgjorda med närmast bull (middle for diddle). Peka eller tryck på en punkt för att se värdet; klicka (eller tryck igen) för att öppna matchen eller tävlingen.</p>
+    ${extra}
+    </section>
+    <section class="flikpanel" data-panel="tavlingar"${valdFlik === 'tavlingar' ? '' : ' hidden'}>
     <h2>Tävlingar</h2>
+    <p class="muted liten">Tryck på en rubrik för att sortera, och på tävlingen för att öppna den.</p>
     <div class="rulla" id="turnlista"></div>
+    </section>
+    <section class="flikpanel" data-panel="matcher"${valdFlik === 'matcher' ? '' : ' hidden'}>
     <h2>Matcher</h2>
     <p class="muted liten">Senaste först. Tryck på en rubrik för att sortera, och på resultatet för att se varje leg runda för runda.</p>
-    <div class="rulla" id="matchlista"></div>${extra}`;
+    <div class="rulla" id="matchlista"></div>
+    </section>`;
 
   // Tävlingarna – sorterbara
   const tKol = [
@@ -294,6 +311,15 @@ async function rita(app, rubrik, allaTurn, allaMatcher, under, extra = '', huvud
     vyLage = b.dataset.lage; ritaGrafer();
   });
   ritaGrafer();
+  const bas = location.hash.split('/').slice(0, 3).join('/');          // #/spelare/<id> eller #/namn/<namn>
+  app.querySelector('.spelarflikar').addEventListener('click', (e) => {
+    const b = e.target.closest('[data-flik]'); if (!b) return;
+    valdFlik = b.dataset.flik;
+    app.querySelectorAll('.spelarflikar [data-flik]').forEach((x) => { x.classList.toggle('vald', x === b); x.setAttribute('aria-selected', x === b); });
+    app.querySelectorAll('.flikpanel').forEach((p) => { p.hidden = p.dataset.panel !== valdFlik; });
+    if (valdFlik === 'statistik') ritaGrafer();                         // graferna mäter bredden när de syns
+    history.replaceState(null, '', valdFlik === 'statistik' ? bas : `${bas}/${valdFlik}`);
+  });
   app.querySelector('.spelform').addEventListener('click', (e) => {
     const b = e.target.closest('[data-form]'); if (!b) return;
     spelform = b.dataset.form; rita(app, rubrik, allaTurn, allaMatcher, under, extra, huvud, efter);

@@ -1,7 +1,7 @@
 // Admin → Export (v0.9.1): hela databasen som CSV (en fil per tabell och vy) och som SQL
 // (data.sql med insert-satser + schemafilerna ur repot), samlat i en zip-fil.
 // Allt hämtas med adminens inloggning (RLS) i omgångar om 1 000 rader.
-import { api, esc, fmt, heltal } from './lib.js?v=0.10.0';
+import { api, esc, fmt, heltal } from './lib.js?v=0.10.1';
 
 // Tabellerna i den ordning de måste läsas in (främmande nycklar). r = n01:s rådata (jsonb), kan väljas bort.
 const TABELLER = [

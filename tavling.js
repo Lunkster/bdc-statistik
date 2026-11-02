@@ -1,6 +1,6 @@
 // Tävlingssida: samma statistik som n01:s statistiksida, grupper, slutspel och matcherna i tidsordning
-import { api, esc, fmt, heltal, spelarlank, datumTid } from './lib.js?v=0.10.0';
-import { checkoutUppskattad, besokUrN01 } from './utgang.js?v=0.10.0';
+import { api, esc, fmt, heltal, spelarlank, datumTid } from './lib.js?v=0.10.1';
+import { checkoutUppskattad, besokUrN01 } from './utgang.js?v=0.10.1';
 
 const pct = (v) => (v == null ? '–' : `${fmt(v, 1)} %`);
 const OMG = { '-1': 'F', '-2': 'SF', '-3': 'KF', '-4': 'ÅF' };
